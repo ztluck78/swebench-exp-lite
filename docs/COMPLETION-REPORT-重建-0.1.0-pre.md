@@ -1,13 +1,14 @@
-# swebench-exp-lite 重建完成报告（v1.0-code）
+# swebench-exp-lite 重建完成报告（0.1.0 pre-release）
 
 > 依据计划：`重建_swebench-exp-lite_教学仓_task-54a.md`（源 spec：v4 最终合并版重建计划）
-> 完成时间：2026-08-10 ｜ 仓库：`ztluck78/swebench-exp-lite`（私有，main = `c116bbf`）
+> 完成时间：2026-08-10 ｜ 仓库：`ztluck78/swebench-exp-lite`（public，0.1.0）
+> 校正注记：本仓首发曾被误标为 `v1.0-code`（commit 沿用），经用户指出未跨平台验证/未跑真实 Agent/仅一道 demo 题通过，达不到 v1.0 stable 语义；按 semver 改回 `0.1.0` pre-release。
 
 ## 一、成果摘要
 
 在当前目录全新构造了 swebench-exp-lite 教学仓库：单一 Python 包 `swebench_exp_lite`
 + 原样移植裁剪的 `answer_evaluator`，共 94 个 .py 文件、9 个 Phase 分段提交全部推送。
-**v1.0 出口红线实跑通过**：macOS 上 replay-agent 跑通
+**0.1.0 出口红线实跑通过**：macOS 上 replay-agent 跑通
 `pylint-dev__pylint-7080` 出题→做题→打分闭环，`result.json` 输出
 `resolved=true / resolved_pct=100.0`（F2P 1/1、P2P 120/120），流程本体 44s，
 且 resolved 可追溯 harness 真实 report.json（非兜底）。
@@ -69,6 +70,6 @@ GETTING-STARTED.md / README.md / AGENTS.md / docs/import-map-swebench-exp-lite.m
 
 ## 六、遗留（按用户决策延后）
 
-- **Phase 10 v1.0-release**：Release 上传 DB、OSS 上传镜像 tar（~1.14GB）、
+- **Phase 10 0.1.0-release**：Release 上传 DB、OSS 上传镜像 tar（~1.14GB）、
   替换 `start.sh` 中 `RELEASE_DB_URL` / `OSS_BASE` 两处占位符、fresh clone 验证。
 - v1.1 路线图：S3_baseline / `--run-baseline`、Ubuntu/WSL2 红线、pytest 基座。
