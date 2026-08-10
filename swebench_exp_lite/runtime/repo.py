@@ -17,6 +17,7 @@ import time
 from pathlib import Path
 from typing import Optional
 
+from .platform import is_process_alive
 from .proc import CmdError, run_cmd
 
 
@@ -98,8 +99,8 @@ def _git_checkout(repo_dir: Path, commit: str) -> None:
 def _mirror_lock_is_stale(lock: Path) -> bool:
     """C-12：判定 mirror 锁是否为 stale 残留（可安全清除）。
 
-    持有者进程已死（os.kill 探测抛 ProcessLookupError）或持锁超 600s（TTL）
-    即判 stale；meta 读取失败（竞态/刚创建）视为正常等待。
+    持有者进程已死（platform.is_process_alive 探测返回 False）或
+    持锁超 600s（TTL）即判 stale；meta 读取失败（竞态/刚创建）视为正常等待。
     """
     try:
         meta = json.loads((lock / "meta.json").read_text(encoding="utf-8"))
@@ -109,13 +110,10 @@ def _mirror_lock_is_stale(lock: Path) -> bool:
         return False
     if time.time() - acquired_at > 600:
         return True
-    try:
-        os.kill(pid, 0)
-    except ProcessLookupError:
+    # 跨平台进程存活探测：POSIX 走 os.kill(pid, 0)，Windows 走 ctypes OpenProcess
+    if not is_process_alive(pid):
         return True
-    except OSError:
-        return False  # 权限不足等：进程存在，继续等待
-    return False
+    return False  # 进程仍在运行，继续等待
 
 
 def _ensure_mirror(repo_url: str, mirror: Path, base_commit: str) -> None:

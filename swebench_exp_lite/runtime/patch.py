@@ -14,6 +14,8 @@ import subprocess as _sp
 from pathlib import Path
 from typing import Optional
 
+from .platform import null_device
+
 
 # C-01：untracked 捕获 denylist（规格 §3.4）。仅作用于 untracked 分支，
 # tracked 改动（git diff HEAD --binary）不过滤。
@@ -74,7 +76,7 @@ def extract_patch_from_repo(repo_dir: Path) -> Optional[str]:
                     print(f"[patch-filter] 跳过噪声文件: {path}")
                     continue
                 diff = _sp.run(
-                    ["git", "diff", "--no-index", "--binary", "/dev/null", path],
+                    ["git", "diff", "--no-index", "--binary", null_device(), path],
                     cwd=str(repo_dir), capture_output=True, text=True, timeout=120,
                 )
                 if diff.stdout.strip():
