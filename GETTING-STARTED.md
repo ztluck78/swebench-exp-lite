@@ -52,11 +52,11 @@ resolved = F2P 全部通过 ∧ P2P 全部通过
 
 ## 1. 环境准备
 
-**v1.0 支持平台：macOS（Docker Desktop）**。
+**0.1.0 支持平台：macOS（Docker Desktop）**。
 
 | 平台 | 状态 |
 |---|---|
-| macOS（Intel / Apple Silicon） | v1.0 支持。Apple Silicon 通过 Rosetta 跑 x86_64 镜像，速度约为原生 1/2-1/3，demo 约 1-2 分钟，属正常预期 |
+| macOS（Intel / Apple Silicon） | 0.1.0 支持。Apple Silicon 通过 Rosetta 跑 x86_64 镜像，速度约为原生 1/2-1/3，demo 约 1-2 分钟，属正常预期 |
 | Ubuntu / WSL2 | v1.1 路线图（脚本与路径约定已按 POSIX 设计，主要差在镜像 arch 与 Docker 配置） |
 | Windows 原生 | v1.1+ 路线图 |
 
@@ -84,7 +84,7 @@ cd swebench-exp-lite
 |---|---|---|
 | 1/5 环境检查 | python>=3.10、docker daemon 存活 | 不通过直接退出并给出原因 |
 | 2/5 venv + 依赖 | 创建 `.venv`，`pip install -e .`（依赖仅四件套：docker / tqdm / unidiff / requests） | `.venv` 已存在则复用 |
-| 3/5 题库 DB | `database/swe_bench.db`（323 条元数据）缺失时从 Release 下载（URL：`https://github.com/ztluck78/swebench-exp-lite/releases/download/v1.0/swe_bench.db`，可用 `SWEBENCH_LITE_DB_URL` 覆盖） | 已存在则跳过，不重复下载 |
+| 3/5 题库 DB | `database/swe_bench.db`（323 条元数据）缺失时从 Release 下载（URL：`https://github.com/ztluck78/swebench-exp-lite/releases/download/0.1.0/swe_bench.db`，可用 `SWEBENCH_LITE_DB_URL` 覆盖） | 已存在则跳过，不重复下载 |
 | 4/5 评测镜像 | 对 demo 题的镜像做 `docker image inspect`；缺失则官方 `docker pull`，再失败降级 OSS tar（`docker save`/`load`，基址可用 `SWEBENCH_LITE_OSS` 覆盖） | 本地已有则短路 |
 | 5/5 demo 预热 | 预跑 S2_prepare（镜像/目录就绪），让正式 demo 更快 | 幂等 |
 | 自检 | `python -m swebench_exp_lite list` 冒烟 + 断言题库恰 323 条；失败非零退出 | — |
@@ -157,7 +157,7 @@ cd swebench-exp-lite
 - `report_source`：resolved 的证据来源。`instance_report` = harness 逐实例真实报告；
   若为 `aggregated_report` 或 `report not found` 则表示证据降级，应排查。
 - `fail_to_pass / pass_to_pass`：两类测试的通过/失败计数。
-- `baseline_resolved`：v1.0 恒为 `null`（不跑 baseline，见第 4 章澄清）。
+- `baseline_resolved`：0.1.0 恒为 `null`（不跑 baseline，见第 4 章澄清）。
 - `image`：打分所用评测镜像。
 - `stage_timings`：各阶段耗时（秒），S6 占大头。
 
@@ -212,7 +212,7 @@ harness 评测日志里有 `>>>>> Applied Patch`（APPLY_PATCH_PASS）与
 ### 4.5 澄清：resolved 与 baseline 无关
 
 resolved 是相对 **gold 测试集**（官方 test_patch 定义的 F2P/P2P）判定的，
-与"修复前测试是否本来就通过"（baseline）无关。本仓 v1.0 不跑 baseline
+与"修复前测试是否本来就通过"（baseline）无关。本仓 0.1.0 不跑 baseline
 （`baseline_resolved` 恒为 null），不影响任何判定。v1.1 可选 `--run-baseline`。
 
 ## 5. 换真实 Agent
@@ -281,7 +281,7 @@ resolved 是相对 **gold 测试集**（官方 test_patch 定义的 F2P/P2P）�
 （建议 >=8GB，Settings → Resources）。
 
 **Q2：DB 下载失败（URL 是占位符）？**
-v1.0-code 阶段 Release 可能尚未上传。把任意来源的 `swe_bench.db`（323 条、
+0.1.0 阶段 Release 可能尚未上传。把任意来源的 `swe_bench.db`（323 条、
 含 v_lite 视图）放到 `database/` 下即可；或设置 `SWEBENCH_LITE_DB_URL` 指向
 你自己的存放地址。
 
@@ -313,7 +313,7 @@ demo 题 1-2 分钟内完成属正常。
 在 `swebench_exp_lite/runtime/registry.py` 的 `RUNNERS` 加一行（可选配
 precondition 工厂），即接入 `run --adapter <brand>`。
 
-**Q9：为什么 v1.0 不跑 baseline（S3）？**
+**Q9：为什么 0.1.0 不跑 baseline（S3）？**
 resolved 相对 gold 测试集判定，baseline 只影响"这道题是否本来就能通过"的
 对照分析，不影响判定本身。教学场景先砍掉以降低理解成本，v1.1 可选回归。
 
@@ -323,4 +323,4 @@ resolved 相对 gold 测试集判定，baseline 只影响"这道题是否本来�
 
 ---
 
-*本教程所有命令均在 macOS + Docker Desktop 环境实跑核对（v1.0-code）。*
+*本教程所有命令均在 macOS + Docker Desktop 环境实跑核对（0.1.0 pre-release）。*
