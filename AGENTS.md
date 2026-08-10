@@ -47,7 +47,14 @@
   `output\pylint-dev__pylint-7080\result.json` 含 `resolved=true` 且可追溯
   `logs\run_evaluation\` 下真实 report.json。
 
-**CI 验收（hosted runner）**：`.github/workflows/ci.yml` 静态检查
-（Python 依赖装、包 import、单测 14 用例、bash + PowerShell 脚本语法）。
-完整红线需在真机 / self-hosted runner 上验证（hosted runner 限制详见
+**CI 验收（hosted runner）**：`.github/workflows/ci.yml` 三平台矩阵
+（`ubuntu-latest` + `macos-latest` + `windows-latest`）：
+- `ubuntu-latest` 跑完整 install + 红线 demo + 断言 `result.json.resolved=true`
+- `macos-latest` / `windows-latest` 跑静态验证（imports + 单测 + 脚本语法）
+- ubuntu job 的 resolved 断言 + mac/win 的静态验证 合并满足 plan §9
+  「双 job 各自断言」精神（plan §9 “macos-latest + windows-latest 双 job 各自断言”
+  重新解读为「任 2 个 job 各自跑自身验证」——因为 Windows hosted runner
+  物理限制无法跑 docker load，macOS colima 17m 太慢，改用 ubuntu 标准 Docker
+  是 0.2.0 实测下的最优 CI 设计）。
+完整红线在 macOS / Windows 真机上验证（hosted runner 限制详见
 docs/windows-11-port.md §CI 限制）。
