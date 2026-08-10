@@ -125,14 +125,19 @@ jobs:
           fi
           pwsh --version
 
-      - name: Install (red-line, ubuntu)
-        if: matrix.os == 'ubuntu-latest'
-        shell: bash
-        run: bash ./start.sh
-
-      - name: Run red-line demo (ubuntu)
+      - name: Install (red-line, ubuntu, via PowerShell entry script)
         if: matrix.os == 'ubuntu-latest'
         shell: pwsh
+        # 跑 plan §9 [10] 第一项：pwsh scripts/windows/install.ps1
+        # pwsh 7+ 在 ubuntu 上跑 Windows 写的 .ps1（与 plan §9 [10] 期望的
+        # "在干净 Windows 11 + Docker Desktop 环境跑通"中的脚本部分一致；
+        # 真机环境仍需用户在 Win11 上执行，见 docs/windows-11-port.md §7.7.1）。
+        run: pwsh scripts/windows/install.ps1
+
+      - name: Run red-line demo (ubuntu, via PowerShell entry script)
+        if: matrix.os == 'ubuntu-latest'
+        shell: pwsh
+        # 跑 plan §9 [10] 第二项：pwsh scripts/windows/run-demo.ps1
         run: pwsh scripts/windows/run-demo.ps1
 
       # ===========================================================
