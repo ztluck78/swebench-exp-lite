@@ -230,7 +230,35 @@ print(LiteDB().docker_image('$Script:DemoInstance'))
             $errExcerpt = if ($null -ne $firstLine) { $firstLine } else { '(无输出)' }
             Write-Err "OSS tar: path=$tarPath size=$tarSize bytes"
             Write-Err "docker load stderr: $errExcerpt"
-            throw "docker load 失败 (size=$tarSize, err='$errExcerpt')"
+
+            # 1) 试 DockerCli -SwitchDaemon 重启到 Linux containers
+            $dockerCli = Join-Path $env:ProgramFiles "Docker\Docker\DockerCli.exe"
+            if (Test-Path $dockerCli) {
+                Write-Info "尝试 DockerCli -SwitchDaemon 后重 load"
+                & $dockerCli -SwitchDaemon 2>&1 | Out-Null
+                Start-Sleep -Seconds 30
+                docker load -i $tarPath 2>&1 | Out-Null
+            } else {
+                Write-Warn "DockerCli.exe 不在，跳过 -SwitchDaemon"
+            }
+
+            # 2) 试 WSL2 backend 直接调 docker load（绕过 Windows daemon）
+            $wsl = Get-Command wsl -ErrorAction SilentlyContinue
+            if ($LASTEXITCODE -ne 0 -and $wsl) {
+                $wslTar = "/mnt/" + ($tarPath -replace '\\','/' -replace '^([A-Z]):', { $_.Groups[1].Value.ToLower() })
+                Write-Info "尝试 wsl docker load -i $wslTar"
+                wsl docker load -i $wslTar 2>&1 | Out-Null
+            } elseif ($LASTEXITCODE -ne 0) {
+                Write-Warn "wsl 不在，跳过 WSL2 fallback"
+            }
+
+            if ($LASTEXITCODE -ne 0) {
+                # 最后再 load 一次抓错误
+                $loadLog2 = & docker load -i $tarPath 2>&1
+                $lastLine = ($loadLog2 | Select-Object -First 1)
+                $finalErr = if ($null -ne $lastLine) { $lastLine } else { '(无输出)' }
+                throw "docker load 失败 (size=$tarSize, err='$finalErr')"
+            }
         }
         Remove-Item $tarPath -ErrorAction SilentlyContinue
         Write-Info "OSS tar 加载完成"
