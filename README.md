@@ -1,5 +1,8 @@
 # swebench-exp-lite
 
+> **v0.2.0 已发布**：[Release Notes](RELEASE_NOTES.md) / [GitHub Release](https://github.com/ztluck78/swebench-exp-lite/releases/tag/v0.2.0)
+> **当前状态**：v0.2.0 pre-release（按诚实预发布标注——spec §9 [7] 部分 / [10] Windows 真机红线未做——见 [docs/verification-spec.md §4](docs/verification-spec.md)）
+
 SWE-bench 精简教学实验平台：在本地用一条命令跑通「出题 → Agent 做题 → 自动打分」的最小闭环。
 
 ## 这是什么
@@ -43,32 +46,56 @@ scripts\windows\run-demo.cmd
 
 ## 平台支持
 
-- **0.1.0**：macOS（Docker Desktop）—— 红线验证 `replay-agent` 跑通 `pylint-dev__pylint-7080`
-- **0.2.0**：+ Windows 11（PowerShell 7+ / 5.1，Docker Desktop WSL2 backend）
-- 路线图：Ubuntu、WSL2、ARM x86_64 emulation 验证
+- **v0.1.0**（已发布）：macOS（Docker Desktop）—— 红线验证 `replay-agent` 跑通 `pylint-dev__pylint-7080`
+- **v0.2.0**（**当前已发布**）：+ Windows 11（PowerShell 7+ / 5.1，Docker Desktop WSL2 backend）
+  - 平台抽象层 4 函数（`swebench_exp_lite/runtime/platform.py`）
+  - 本地集成测试（`scripts/local-test.sh` / `scripts/windows/local-test.ps1`）
+  - pre-commit hook 30s 强制门禁（`.githooks/pre-commit`）
+- **v0.3.0+** 路线图：Ubuntu 真机适配、self-hosted macOS runner（消除 colima/qemu 17m）
 
-## CI 策略
+## 验证策略（v0.2.0）
 
-GitHub Actions hosted runner **不预装 Docker Desktop**（macOS runner 完全没有，
-windows runner 有但网络拉不到 x86_64 镜像），所以 hosted CI 拆成两层：
+v0.2.0 按 user 反馈"目标放在本地，不要烧 CI 时间"重构成**三层架构**：
 
-- **ubuntu-latest**：装 Docker + PowerShell（microsoft/powershell apt 仓库），
-  跑 `start.sh` + `pwsh scripts/windows/run-demo.ps1` + 断言
-  `result.json.resolved=true`（约 1.5 分钟）。
-- **macos-latest + windows-latest**：跑静态验证（包 import + 14 单测 + 脚本语法），
-  挡住「包不能 import / 单测挂 / 语法错」类回归（< 1 分钟）。
+| 层 | 角色 | 何时跑 | 耗时 | 谁负责 |
+|---|---|---|---|---|
+| **pre-commit hook**（`.githooks/pre-commit`，仓根入库）| 强制门禁——挡快速项 | 每次 `git commit` 自动 | < 1 min | Git（本地）|
+| **本地集成测试**（`scripts/local-test.sh` / `scripts/windows/local-test.ps1`）| **发布门禁**（主）| 任何 commit 前必跑 | 5-10min 首次 / 1-2min 日常 | 开发者本地 |
+| **CI 静态 + 单测**（`.github/workflows/ci.yml`，3 runner）| PR 防线 | push / PR 自动 | 30s-1.5m | GitHub Actions |
+| **真机红线**（plan §10 跟进）| 多平台验证 | Win11 真机手动 | 5-10min | 用户 / 团队 |
 
-完整红线在 macOS / Windows 真机上验证（详见 [docs/windows-11-port.md](docs/windows-11-port.md)
-§7 CI 限制）。
+**启用 pre-commit hook**（开发者首次 clone 后跑一次）：
+```bash
+git config core.hooksPath .githooks
+```
+
+**完整规范**：[`docs/verification-spec.md`](docs/verification-spec.md) —— 8 节开发纪律、CI 严禁清单、spec §9 诚实状态。
+
+**为什么 v0.2.0 不在 CI 跑红线**：GitHub Actions hosted runner 物理限制（macOS 无 Docker Desktop → colima 17m；Windows docker load Linux 镜像失败 → `cannot load linux image on windows`），详见 [docs/windows-11-port.md §7](docs/windows-11-port.md)。
 
 ## 仓库结构
 
 ```
 swebench_exp_lite/    # 单一 Python 包：db / builder / runtime / agents / pipeline / cli
+                       # 含 platform.py 平台抽象层（v0.2.0 新增）
+                       # 含 tests/test_platform.py 14 个跨平台单测
 answer_evaluator/     # 评测 harness（原样移植自 SWE-bench 官方，Python-only 裁剪）
 data/swe_bench_data/  # swe-bench-lite 数据集（本地 .jsonl，无需联网）
 database/             # 题库 SQLite（swe_bench.db，git 忽略，start.sh 下载）+ migrations
-docs/                 # import 依赖映射表等移植文档
+docs/                 # 文档
+  ├── windows-11-port.md       # Windows 11 移植笔记 + 70+ 分钟 CI 调试教训
+  ├── verification-spec.md     # v0.2.0+ 开发纪律规范（8 节）
+  └── user-guide-windows.md    # Windows 11 用户手册
+scripts/              # v0.2.0 新增——多平台入口脚本（mac/win/ubuntu 目录托管）
+  ├── README.md
+  ├── macos/           # macOS 占位（0.1.0 仓根 .sh 保留）
+  ├── ubuntu/          # Ubuntu 未来扩展位（.gitkeep）
+  ├── windows/         # Windows 11 适配（4 .ps1 + 3 .cmd + _common.ps1 + README）
+  ├── local-test.sh    # macOS / Linux 本地集成测试
+  └── windows/local-test.ps1  # Windows 本地集成测试
+.githooks/pre-commit  # v0.2.0 新增——30s 强制门禁（pip install + 单测 + bash 语法）
+.github/workflows/ci.yml  # CI 极简（30s 静态 + 单测，**严禁扩展**——见 spec §3）
+RELEASE_NOTES.md      # v0.2.0 发布说明
 ```
 
 ## 致谢与来源
