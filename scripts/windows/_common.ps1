@@ -123,13 +123,17 @@ function Step-EnvCheck {
         Write-Err "未安装 docker（请装 Docker Desktop for Windows，启用 WSL2 backend）。"
         return $false
     }
-    # Windows Docker Desktop 默认是 Windows containers mode；load Linux 镜像会报
-    # 'cannot load linux image on windows'。提前切到 Linux containers（重启 daemon）。
+    # Windows Docker Desktop 在 hosted runner 默认是 Windows containers mode；
+    # load Linux 镜像会报 'cannot load linux image on windows'。查 DockerCli.exe 路径
+    # 以便后续 Step-EvalImage 失败时能切到 Linux containers。
     $dockerCli = Join-Path $env:ProgramFiles "Docker\Docker\DockerCli.exe"
-    if (Test-Path $dockerCli) {
-        Write-Info "切 Docker daemon 到 Linux containers（DockerCli -SwitchDaemon）"
-        & $dockerCli -SwitchDaemon 2>&1 | Out-Null
-        Start-Sleep -Seconds 30  # daemon 重启需要时间
+    $Script:DockerCliAvailable = Test-Path $dockerCli
+    $Script:WslAvailable = [bool](Get-Command wsl -ErrorAction SilentlyContinue)
+    if (-not $Script:DockerCliAvailable) {
+        Write-Warn "DockerCli.exe 不在（hosted runner 常见）；daemon mode 切换可能受限"
+    }
+    if (-not $Script:WslAvailable) {
+        Write-Warn "wsl 也不在；WSL2 docker load fallback 不可用"
     }
     docker info 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) {
