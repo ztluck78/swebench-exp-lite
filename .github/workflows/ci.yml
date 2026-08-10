@@ -1,15 +1,14 @@
 # GitHub Actions CI: swebench-exp-lite 0.2.0
 #
-# 设计取舍（0.2.0 CI 限制）：
-# - GitHub Actions hosted runner 默认不预装 Docker Desktop（macOS runner 完全没有，
-#   windows runner 有但网络拉不到 x86_64 镜像，ubuntu 可装但要自维护）。
-# - 因此 hosted runner **不跑完整红线**（red-line）；红线验证在 plan §10 列为
-#   "真机 / self-hosted runner 后续验证"。
-# - hosted CI 改为"双平台 Python 静态验证 + 单元测试 + 脚本语法检查"：
-#   这是 hosted runner 能跑通的最大子集，能在 PR 阶段挡住"包不能 import / 语法
-#   错 / 单测挂"这类回归。
+# 设计目标（plan §9 验收 CI 部分）：
+# - macos-latest + windows-latest 双 job 都跑"安装 + 红线 demo + 断言 resolved=true"
+# - 静态验证作为前置门，挡住"包 import 挂 / 单测挂 / 脚本语法错"类回归
 #
-# 触发：push / pull_request 到 main 分支
+# Docker 拉取策略：
+# - macOS runner 用 colima 装 Docker（homebrew 仓库）
+# - Windows runner 启 Docker Desktop daemon（hosted runner 自带）
+# - 镜像优先 docker pull；失败走 OSS tar 降级
+# - Windows runner 上 docker load OSS tar 失败的细节会暴露到 CI 日志
 
 name: ci
 
@@ -21,7 +20,7 @@ on:
 
 jobs:
   test:
-    name: static-check (${{ matrix.os }})
+    name: red-line (${{ matrix.os }})
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -39,36 +38,34 @@ jobs:
         with:
           python-version: "3.10"
 
-      # 安装项目（仅四件套，无 docker 运行时需求）
-      - name: Install dependencies
+      # -----------------------------------------------------------
+      # 静态验证：挡住"包 import 挂 / 单测挂 / 脚本语法错"类回归
+      # -----------------------------------------------------------
+      - name: Install Python dependencies
         shell: pwsh
         run: |
           python -m pip install --upgrade pip
           python -m pip install -e .
           if ($LASTEXITCODE -ne 0) { throw "pip install -e . 失败" }
 
-      # 平台抽象层 import smoke：挡住"包不能 import"类回归
       - name: Platform layer import smoke
         shell: pwsh
         run: |
           python -c "from swebench_exp_lite.runtime.platform import null_device, is_process_alive, venv_bin_dir, default_shell; print('platform 4 functions OK')"
           if ($LASTEXITCODE -ne 0) { throw "platform layer import 失败" }
 
-      # answer_evaluator 改动后 import 也不挂
       - name: answer_evaluator import smoke
         shell: pwsh
         run: |
           python -c "from answer_evaluator.harness.run_evaluation import main as re_main; from answer_evaluator.harness.prepare_images import main as pi_main; print('answer_evaluator import OK')"
           if ($LASTEXITCODE -ne 0) { throw "answer_evaluator import 失败" }
 
-      # 单元测试：14 用例（POSIX 真路径 + Windows mock 路径）
       - name: Unit tests (test_platform)
         shell: pwsh
         run: |
           python -m unittest swebench_exp_lite.tests.test_platform -v
           if ($LASTEXITCODE -ne 0) { throw "单测失败" }
 
-      # bash 脚本语法检查（双平台都跑）
       - name: bash scripts syntax check
         shell: bash
         run: |
@@ -77,8 +74,6 @@ jobs:
           done
           echo "bash scripts OK"
 
-      # PowerShell 脚本语法检查（AST 解析，不实际执行）
-      # 只在 windows-latest 跑（hosted runner 自带 pwsh；macOS runner 默认无）
       - name: PowerShell scripts syntax check
         if: matrix.os == 'windows-latest'
         shell: pwsh
@@ -93,13 +88,87 @@ jobs:
           foreach ($f in $files) {
             $tokens = $null
             $errors = $null
-            [System.Management.Automation.Language.Parser]::ParseFile(
-              (Resolve-Path $f),
-              [ref]$tokens,
-              [ref]$errors
-            ) | Out-Null
-            if ($errors.Count -gt 0) {
-              throw "$f 解析错误: $($errors | Out-String)"
-            }
+            [System.Management.Automation.Language.Parser]::ParseFile((Resolve-Path $f), [ref]$tokens, [ref]$errors) | Out-Null
+            if ($errors.Count -gt 0) { throw "$f 解析错误: $($errors | Out-String)" }
           }
           Write-Host "PowerShell scripts OK"
+
+      # -----------------------------------------------------------
+      # 平台 Docker 准备
+      # -----------------------------------------------------------
+      - name: Install colima (Docker for macOS runner)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: |
+          # macOS hosted runner 默认无 Docker；装 colima（开源 Docker for Mac）
+          # 慢但能跑：约 3-5 分钟
+          if ! command -v colima >/dev/null 2>&1; then
+            brew install colima
+          fi
+          # 启 colima（CPU 4 / 内存 8GB / 磁盘 60GB）
+          colima status 2>/dev/null | grep -q "running" || colima start --cpu 4 --memory 8 --disk 60
+          # 验证 docker 通了
+          docker info >/dev/null
+          echo "Docker OK via colima"
+
+      - name: Start Docker daemon (Windows runner)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: |
+          # Windows hosted runner 自带 Docker Desktop；启 daemon
+          $svc = Get-Service docker -ErrorAction SilentlyContinue
+          if ($svc -and $svc.Status -ne 'Running') {
+            Start-Service docker
+            Start-Sleep -Seconds 10
+          }
+          # 备用：直接调 docker info 触发 lazy start
+          docker info 2>&1 | Out-Null
+          if ($LASTEXITCODE -ne 0) {
+            throw "docker daemon 启动失败"
+          }
+          Write-Host "Docker OK via Windows daemon"
+
+      # -----------------------------------------------------------
+      # 红线 demo：安装 + 跑 + 断言
+      # -----------------------------------------------------------
+      - name: Install (macOS red-line)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: bash ./start.sh
+
+      - name: Install (Windows red-line)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: pwsh scripts/windows/install.ps1
+
+      - name: Red-line demo (macOS)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: bash ./run_demo.sh
+
+      - name: Red-line demo (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: pwsh scripts/windows/run-demo.ps1
+
+      - name: Assert result.json.resolved=true
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $resultPath = "output/pylint-dev__pylint-7080/result.json"
+          if (-not (Test-Path $resultPath)) {
+            throw "未找到 $resultPath（demo 未产出 result.json）"
+          }
+          $r = Get-Content $resultPath -Raw | ConvertFrom-Json
+          if (-not $r.resolved) {
+            throw "red-line failed: $resultPath.resolved=$($r.resolved)"
+          }
+          Write-Host "red-line OK: $resultPath resolved=$($r.resolved) report_source=$($r.report_source)"
+
+      - name: Upload result.json
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.os }}
+          path: output/pylint-dev__pylint-7080/result.json
+          if-no-files-found: ignore
