@@ -1,0 +1,86 @@
+# GitHub Actions CI: swebench-exp-lite 0.2.0
+#
+# 双平台红线条目：
+# - macos-latest 跑 ./start.sh + ./run_demo.sh，断言 result.json.resolved=true
+# - windows-latest 跑 pwsh scripts/windows/install.ps1 + run-demo.ps1，同断言
+# - 两个 job 都跑单元测试 swebench_exp_lite.tests.test_platform
+#
+# 触发：push / pull_request 到 main 分支
+
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    name: test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      # macOS 走仓根 .sh；Windows 走 scripts/windows/*.ps1
+      - name: Install (macOS)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: bash ./start.sh
+
+      - name: Install (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: pwsh scripts/windows/install.ps1
+
+      # 单元测试：平台抽象层在 POSIX + Windows 上行为对齐
+      - name: Unit tests (test_platform)
+        shell: pwsh
+        run: python -m unittest swebench_exp_lite.tests.test_platform -v
+
+      # 红线 demo
+      - name: Red-line demo (macOS)
+        if: matrix.os == 'macos-latest'
+        shell: bash
+        run: bash ./run_demo.sh
+
+      - name: Red-line demo (Windows)
+        if: matrix.os == 'windows-latest'
+        shell: pwsh
+        run: pwsh scripts/windows/run-demo.ps1
+
+      # 断言 result.json.resolved == true
+      - name: Assert resolved=true
+        shell: pwsh
+        run: |
+          $resultPath = "output/pylint-dev__pylint-7080/result.json"
+          if (-not (Test-Path $resultPath)) {
+            throw "未找到 $resultPath（demo 未产出 result.json）"
+          }
+          $r = Get-Content $resultPath -Raw | ConvertFrom-Json
+          if (-not $r.resolved) {
+            throw "red-line failed: $resultPath.resolved=$($r.resolved)"
+          }
+          Write-Host "red-line OK: $($resultPath) resolved=$($r.resolved)"
+
+      # 上传 demo 产物（方便 PR review 时看）
+      - name: Upload result.json
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: result-${{ matrix.os }}
+          path: output/pylint-dev__pylint-7080/result.json
+          if-no-files-found: ignore

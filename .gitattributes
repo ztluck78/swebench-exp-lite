@@ -1,0 +1,28 @@
+# 行尾规范化（0.2.0 起）
+#
+# 动机：Windows 开发者 clone 后，core.autocrlf 默认为 true，会把 .sh 转 CRLF，
+# 0.1.0 红线 start.sh / run_demo.sh 立即崩（bash 对 CRLF shebang 处理 OK 但
+# 某些子命令如 `set -euo pipefail` 解析失败）。
+#
+# 规则：
+# - Unix 风格脚本（.sh / .py / .md / 配置文件）强制 LF
+# - Windows 风格脚本（.ps1 / .cmd / .bat）允许 CRLF（PowerShell 5.1 强依赖 CRLF；
+#   PowerShell 7+ 都接受；cmd 解析 CRLF/LF 均可）
+# - data/swe_bench_data/*.jsonl 强制 LF（数据一致性）
+
+# 强制 LF（Unix 风格 + bash/PowerShell 7 兼容）
+*.sh        text eol=lf
+*.py        text eol=lf
+*.md        text eol=lf
+*.json      text eol=lf
+*.toml      text eol=lf
+*.yml       text eol=lf
+*.yaml      text eol=lf
+*.jsonl     text eol=lf
+*.gitignore text eol=lf
+*.gitattributes text eol=lf
+
+# Windows 脚本允许 CRLF（PowerShell 5.1 强依赖 CRLF；7+ 都接受）
+*.ps1       text eol=crlf
+*.cmd       text eol=crlf
+*.bat       text eol=crlf
