@@ -6,9 +6,9 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# ---- 占位符（v1.0-release 阶段替换为真实地址；env 可覆盖） ----
+# ---- 占位符（OSS 已就绪；GitHub Release URL 仍为占位，env 可覆盖） ----
 RELEASE_DB_URL="${SWEBENCH_LITE_DB_URL:-https://github.com/ztluck78/swebench-exp-lite/releases/download/v1.0/swe_bench.db}"
-OSS_BASE="${SWEBENCH_LITE_OSS:-https://example-oss.invalid/swebench-exp-lite}"
+OSS_BASE="${SWEBENCH_LITE_OSS:-https://github-release-data.oss-cn-beijing.aliyuncs.com}"
 
 DEMO_INSTANCE="pylint-dev__pylint-7080"
 
