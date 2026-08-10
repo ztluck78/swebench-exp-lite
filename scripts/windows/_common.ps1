@@ -132,13 +132,14 @@ function Step-EnvCheck {
     # Windows Docker Desktop 在 hosted runner 默认是 Windows containers mode；
     # load Linux 镜像会报 'cannot load linux image on windows'。查 DockerCli.exe 路径
     # 以便后续 Step-EvalImage 失败时能切到 Linux containers。
-    # POSIX 上 $env:ProgramFiles 未定义，用空串代替（Join-Path 仍能跑）
-    $progFiles = if ($env:ProgramFiles) { $env:ProgramFiles } else { "" }
-    $dockerCli = Join-Path $progFiles "Docker\Docker\DockerCli.exe"
-    $Script:DockerCliAvailable = Test-Path $dockerCli
+    # POSIX 上 $env:ProgramFiles 未定义，且 Join-Path 不能接受空串，守卫一下
+    $dockerCli = if ($env:ProgramFiles) {
+        Join-Path $env:ProgramFiles "Docker\Docker\DockerCli.exe"
+    } else { "" }
+    $Script:DockerCliAvailable = if ($dockerCli) { Test-Path $dockerCli } else { $false }
     $Script:WslAvailable = [bool](Get-Command wsl -ErrorAction SilentlyContinue)
     if (-not $Script:DockerCliAvailable) {
-        Write-Warn "DockerCli.exe 不在（hosted runner 常见）；daemon mode 切换可能受限"
+        Write-Warn "DockerCli.exe 不在（hosted runner / POSIX 常见）；daemon mode 切换可能受限"
     }
     if (-not $Script:WslAvailable) {
         Write-Warn "wsl 也不在；WSL2 docker load fallback 不可用"
