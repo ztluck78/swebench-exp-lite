@@ -11,7 +11,7 @@ INSTANCE="pylint-dev__pylint-7080"
 PY=".venv/bin/python"
 [ -x "$PY" ] || { echo "请先运行 ./start.sh 完成安装"; exit 1; }
 
-echo "==> 六阶段闭环：$INSTANCE（adapter=replay-agent）"
+echo "==> 六阶段闭环: ${INSTANCE} (adapter=replay-agent)"
 START=$(date +%s)
 "$PY" -m swebench_exp_lite run --instance "$INSTANCE" --adapter replay-agent "$@"
 END=$(date +%s)
@@ -37,4 +37,4 @@ cat <<'EOF'
   重要声明：replay-agent 是回放已知 gold patch 的闭环自检，证明链路通畅，
   不代表模型解题能力。换真实 Agent 请看 GETTING-STARTED.md 第 5 章。
 EOF
-echo "  本次流程本体耗时：$((END - START))s"
+echo "  本次流程本体耗时: $((END - START))s"

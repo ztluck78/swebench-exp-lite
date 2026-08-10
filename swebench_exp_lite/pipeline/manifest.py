@@ -79,7 +79,11 @@ class Manifest:
     def mark_started(self, name: str) -> None:
         st = self._stage(name)
         st["status"] = "running"
+        # 重跑（断点续跑/force）时重置计时并清空旧产物记录，避免负耗时
         st["started"] = _now()
+        st["finished"] = None
+        st["outputs"] = []
+        st.pop("error", None)
         self.save()
 
     def mark_done(self, name: str, outputs: list[str] | None = None) -> None:
