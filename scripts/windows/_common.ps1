@@ -31,7 +31,13 @@ $Script:ColorCyan    = "`e[36m"
 # 仓根：本脚本在 scripts/windows/ 下，向上两级
 $Script:RepoRoot = (Resolve-Path "$PSScriptRoot/../..").Path
 $Script:VenvDir  = Join-Path $Script:RepoRoot ".venv"
-$Script:VenvPy   = Join-Path $Script:VenvDir "Scripts/python.exe"
+# 用 platform.venv_bin_dir() 跨平台：POSIX=bin/python，Windows=Scripts/python.exe
+$pyBin = if ($IsWindows -or $env:OS -eq 'Windows_NT' -or [System.IO.Path]::DirectorySeparatorChar -eq '\') {
+    "Scripts/python.exe"
+} else {
+    "bin/python"
+}
+$Script:VenvPy   = Join-Path $Script:VenvDir $pyBin
 $Script:DemoInstance = "pylint-dev__pylint-7080"
 
 # 0.1.0 资源地址（与 start.sh 保持一致；env 可覆盖）
