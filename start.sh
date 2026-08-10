@@ -2,12 +2,12 @@
 # start.sh — swebench-exp-lite 幂等安装（可重复执行，已就绪的步骤自动跳过）
 #
 # 五步：环境检查 → venv+依赖 → 题库 DB → 评测镜像 → demo 预热，最后安装自检。
-# v1.0 支持平台：macOS（Docker Desktop）。
+# 0.1.0 支持平台：macOS（Docker Desktop）；Ubuntu/Windows/Apple Silicon 慢速优化列入 v1.1+ 路线图。
 set -euo pipefail
 cd "$(dirname "$0")"
 
-# ---- v1.0 资源地址（OSS 镜像 & GitHub Release DB；env 可覆盖） ----
-RELEASE_DB_URL="${SWEBENCH_LITE_DB_URL:-https://github.com/ztluck78/swebench-exp-lite/releases/download/v1.0/swe_bench.db}"
+# ---- 0.1.0 资源地址（OSS 镜像 & GitHub Release DB；env 可覆盖） ----
+RELEASE_DB_URL="${SWEBENCH_LITE_DB_URL:-https://github.com/ztluck78/swebench-exp-lite/releases/download/0.1.0/swe_bench.db}"
 OSS_BASE="${SWEBENCH_LITE_OSS:-https://github-release-data.oss-cn-beijing.aliyuncs.com}"
 
 DEMO_INSTANCE="pylint-dev__pylint-7080"
@@ -47,7 +47,7 @@ else
         echo "下载完成"
     else
         rm -f database/swe_bench.db
-        echo "错误：DB 下载失败（v1.0-code 阶段 URL 可能还是占位符）。"
+        echo "错误：DB 下载失败（0.1.0 阶段 Release URL 可能异常或网络受限）。"
         echo "      请手动把 swe_bench.db 放到 database/ 下后重跑本脚本。"
         exit 1
     fi
@@ -72,7 +72,7 @@ else
             rm -f "/tmp/$TARBALL"
             echo "OSS tar 加载完成"
         else
-            echo "错误：镜像获取失败（v1.0-code 阶段 OSS 地址可能还是占位符）。"
+            echo "错误：镜像获取失败（0.1.0 阶段 OSS 地址可能异常）。"
             echo "      可手动 docker pull $EVAL_IMAGE 或 docker load 后重跑。"
             exit 1
         fi

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# run_demo.sh — replay-agent 闭环演示（v1.0 红线验证入口）
+# run_demo.sh — replay-agent 闭环演示（0.1.0 红线验证入口）
 #
 # replay-agent 是"回放已知 gold patch"的闭环自检：它不调用任何 LLM，
 # 直接把官方答案写回评分链路，证明 出题→做题→打分 管道本身通畅。
@@ -30,7 +30,7 @@ cat <<'EOF'
   report_source                  resolved 的证据来源：instance_report=逐实例真实报告
                                  （若是 aggregated_report/report not found 则说明证据降级）
   fail_to_pass / pass_to_pass    修复验证测试 / 回归测试的通过明细
-  baseline_resolved=null         v1.0 不跑 baseline；resolved 相对 gold 测试集判定，与 baseline 无关
+  baseline_resolved=null         0.1.0 不跑 baseline；resolved 相对 gold 测试集判定，与 baseline 无关
   image                          本次评分所用的 Docker 评测镜像
   stage_timings                  各阶段耗时（S6 评分占大头，首次需跑容器内测试）
 

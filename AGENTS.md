@@ -31,7 +31,7 @@
 - 反向禁止：本仓的教学化简化不得回流污染主仓。
 - 移植来源基准 SHA 见首个 commit message。
 
-## 验收红线（v1.0 出口）
+## 验收红线（0.1.0 出口）
 
 macOS 上 `./run_demo.sh` 以 replay-agent 跑通 `pylint-dev__pylint-7080`：
 `output/pylint-dev__pylint-7080/result.json` 含 `resolved=true` 且该 resolved

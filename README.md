@@ -24,7 +24,7 @@ SWE-bench 精简教学实验平台：在本地用一条命令跑通「出题 →
 
 ## 平台支持
 
-v1.0 支持平台：**macOS**（Docker Desktop）。Ubuntu/WSL2、Windows、Apple Silicon 慢速优化列在 v1.1+ 路线图。
+0.1.0 支持平台：**macOS**（Docker Desktop）。Ubuntu/WSL2、Windows、Apple Silicon 慢速优化列在 v1.1+ 路线图。
 
 ## 仓库结构
 
