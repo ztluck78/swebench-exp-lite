@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# .githooks/pre-commit — spec §1 强制落地（30s 静态门禁）
+#
+# 这是 docs/verification-spec.md §1 提到的"pre-commit hook 是 spec 纪律的强制落地"
+# 的具体实现。本 hook 只挡**快速项**（< 1 min）：
+#   1. pip install -e .（幂等，已装过秒过）
+#   2. 平台抽象层 14 单测
+#   3. 仓根 .sh 脚本 bash -n 语法检查
+#
+# **不**跑 ./scripts/local-test.sh（5-10min 太慢，会让 commit 卡顿）。
+# 完整必跑（spec §2）靠自觉 + reviewer 兜底——本 hook 末尾 echo 提醒。
+#
+# 启用方法（开发者首次 clone 后执行一次）：
+#   git config core.hooksPath .githooks
+# 或一次性命令：
+#   git config core.hooksPath .githooks && chmod +x .githooks/pre-commit
+set -e
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+cd "$REPO_ROOT"
+
+# 找 python：优先 venv（local-test.sh 会建），降级到系统 python3 / python
+if [ -x ".venv/bin/python" ]; then
+    PY=".venv/bin/python"
+elif command -v python3 >/dev/null 2>&1; then
+    PY=python3
+elif command -v python >/dev/null 2>&1; then
+    PY=python
+else
+    echo "[pre-commit][error] 找不到 python（请装 Python ≥ 3.10 或激活 venv）"
+    exit 1
+fi
+
+echo "[pre-commit] spec §1 强制门禁（< 1 min，python=$PY）"
+
+# 1. pip install -e .（幂等）
+echo "[pre-commit] 1/3 pip install -e ."
+"$PY" -m pip install -e . --quiet 2>&1 | tail -3 || {
+    echo "  [error] pip install -e . 失败"
+    exit 1
+}
+
+# 2. 平台抽象层单测
+echo "[pre-commit] 2/3 平台抽象层单测"
+"$PY" -m unittest swebench_exp_lite.tests.test_platform 2>&1 | tail -3 || {
+    echo "  [error] 单测失败"
+    exit 1
+}
+
+# 3. 仓根 bash 脚本语法检查
+echo "[pre-commit] 3/3 bash 脚本语法检查"
+for f in start.sh run_demo.sh check-agents.sh scripts/local-test.sh; do
+    if [ -f "$f" ]; then
+        bash -n "$f" || {
+            echo "  [error] bash -n $f failed"
+            exit 1
+        }
+    fi
+done
+
+echo ""
+echo "[pre-commit] 通过 (3/3)"
+echo ""
+echo "--- spec §2 必跑提醒（按改动类型，自觉跑）---"
+echo "  改 swebench_exp_lite/  Python 运行时 → ./scripts/local-test.sh"
+echo "  改 scripts/windows/*.ps1  → ./scripts/local-test.sh"
+echo "  改 start.sh / run_demo.sh / check-agents.sh → ./scripts/local-test.sh --skip-install"
+echo "  改 swebench_exp_lite/tests/ → python -m unittest ...test_platform -v"
+echo "  改 AGENTS.md / README.md / GETTING-STARTED.md / docs/*.md → 人眼 review"
+echo "  改 .github/workflows/ci.yml → 严禁扩展红线层（spec §3）"
+echo ""
+echo "完整 .ps1 / 仓根 .sh 改动仍要本地跑 ./scripts/local-test.sh（5-10min 首次 / 1-2min 日常）。"
+echo "pre-commit 仅挡< 1 min 快速项。详见 docs/verification-spec.md。"

@@ -8,9 +8,18 @@
 
 | 层 | 角色 | 何时跑 | 耗时 | 谁负责 |
 |---|---|---|---|---|
-| **本地集成测试**（主）| 发布门禁 | commit 前必跑 | 5-10min 首次 / 1-2min 日常 | 开发者本地 |
+| **pre-commit hook**（` .githooks/pre-commit`，仓根入库）| spec §1 纪律的**强制落地**——挡快速项（< 1 min）| 每次 `git commit` 自动跑 | < 1 min | Git（本地）|
+| **本地集成测试**（主）| 发布门禁 | 任何 commit 前必跑 | 5-10min 首次 / 1-2min 日常 | 开发者本地 |
 | **CI 静态 + 单测**（辅）| PR 防线 | push / PR | 30s-1.5m | GitHub Actions |
 | **真机红线**（plan §10 跟进）| 多平台验证 | Win11 真机手动 | 5-10min | 用户 / 团队 |
+
+**pre-commit hook 是 spec §1 纪律的强制落地**——开发者首次 clone 仓根后执行 `git config core.hooksPath .githooks` 启用；之后每次 commit 都会自动跑 pip install + 14 单测 + bash 语法检查（< 1 min 快速门禁），挡住 import 错误 / 单测挂 / bash 语法错。**完整必跑**（`scripts/local-test.sh`，5-10min）仍靠自觉 + reviewer 兜底——pre-commit 不会跑（避免 commit 卡顿）。详见 §2。
+
+启用方法（开发者首次 clone 后**只跑一次**）：
+```bash
+git config core.hooksPath .githooks
+chmod +x .githooks/pre-commit   # 若 .githooks/ 仓根已有 +x 可省
+```
 
 ## 2. Commit 前必跑（按改动类型分层）
 
