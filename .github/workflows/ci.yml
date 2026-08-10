@@ -112,6 +112,9 @@ jobs:
           if ! command -v qemu-img >/dev/null 2>&1; then
             brew install qemu
           fi
+          if ! command -v limactl >/dev/null 2>&1 || ! ls /opt/homebrew/Cellar/lima-additional-guestagents 2>/dev/null; then
+            brew install lima-additional-guestagents
+          fi
           # 启 colima（CPU 4 / 内存 8GB / 磁盘 60GB；Apple Silicon 上需要 x86_64 模拟）
           colima status 2>/dev/null | grep -q "running" || colima start --cpu 4 --memory 8 --disk 60 --arch x86_64 --vm-type=qemu
           # 验证 docker 通了
