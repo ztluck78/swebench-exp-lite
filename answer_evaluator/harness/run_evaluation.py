@@ -515,6 +515,8 @@ def main(
     dataset = get_dataset_from_preds(
         dataset_name, split, instance_ids, predictions, run_id, rewrite_reports
     )
+    # 聚合报告（make_run_report）需要全量实例列表推导 resolved_ids
+    full_dataset = load_swebench_dataset(dataset_name, split, instance_ids)
 
     # run instances locally
     if platform.system() == "Linux":
