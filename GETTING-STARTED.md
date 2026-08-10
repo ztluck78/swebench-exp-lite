@@ -52,25 +52,30 @@ resolved = F2P 全部通过 ∧ P2P 全部通过
 
 ## 1. 环境准备
 
-**0.1.0 支持平台：macOS（Docker Desktop）**。
+**0.2.0 支持平台：macOS + Windows 11**。
 
 | 平台 | 状态 |
 |---|---|
-| macOS（Intel / Apple Silicon） | 0.1.0 支持。Apple Silicon 通过 Rosetta 跑 x86_64 镜像，速度约为原生 1/2-1/3，demo 约 1-2 分钟，属正常预期 |
-| Ubuntu / WSL2 | v1.1 路线图（脚本与路径约定已按 POSIX 设计，主要差在镜像 arch 与 Docker 配置） |
-| Windows 原生 | v1.1+ 路线图 |
+| macOS（Intel / Apple Silicon） | 0.1.0 验证。Apple Silicon 通过 Rosetta 跑 x86_64 镜像，速度约为原生 1/2-1/3，demo 约 1-2 分钟，属正常预期 |
+| Windows 11 x86_64 + PowerShell 7+ | 0.2.0 验证。Docker Desktop 需启用 WSL2 backend |
+| Windows 11 x86_64 + PowerShell 5.1 | 0.2.0 验证（`.cmd` 兌底） |
+| Ubuntu | v0.3+ 路线图（`scripts/ubuntu/` 预留位） |
+| WSL2 | 路线图外（直接复用仓根 `start.sh` 即可，与 macOS 路径同） |
 
 需要预装：
 
-- **Python >= 3.10**（`python3 --version` 检查；推荐 3.10-3.12）
+- **Python >= 3.10**
+  - macOS：`python3 --version` 检查；推荐 3.10-3.12
+  - Windows：[python.org](https://www.python.org/downloads/windows/) 下载器，安装时勾 "Add Python to PATH"
 - **Docker Desktop** 并且 daemon 处于运行状态（`docker info` 能输出即 OK）
+  - Windows 11 需启用 WSL2 backend（Settings → Resources → WSL Integration）
+- **PowerShell 7+**（仅 Windows）：`winget install Microsoft.PowerShell`
 - **磁盘空间**：单个评测镜像 1-4 GB；本教程的 demo 镜像约 4 GB
-- **git / curl**（macOS 自带）
-
-不需要联网拉数据集——数据集（.jsonl）与题库元数据随仓/随安装提供。
-唯一需要网络的场景：首次下载题库 DB 与评测镜像（见第 2 章）。
+- **git / curl**（macOS 自带；Windows 10+ 自带 curl，PowerShell 走 `Invoke-WebRequest` 代替 curl）
 
 ## 2. 一键安装
+
+### macOS / Linux
 
 ```bash
 git clone <本仓库地址> swebench-exp-lite   # 或直接用已有目录
@@ -91,12 +96,55 @@ cd swebench-exp-lite
 
 看到 `安装完成。下一步：./run_demo.sh` 即安装成功。
 
+### Windows 11
+
+```powershell
+git clone <本仓库地址> swebench-exp-lite
+cd swebench-exp-lite
+pwsh scripts/windows/install.ps1
+```
+
+首次跑 `.ps1` 可能被 `Set-ExecutionPolicy` 拦住（仅当前用户，一次性）：
+
+```powershell
+Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+```
+
+或用 `.cmd` 兌底（`.cmd` 本身以 `-ExecutionPolicy Bypass` 调 ps1，不需手动改策略）：
+
+```cmd
+scripts\windows\install.cmd
+```
+
+`install.ps1` 与 `install.cmd` 幂等（可重复执行），五步与 macOS `start.sh` 一一对应：
+
+| 步骤 | 做什么 | 与 macOS 差异 |
+|---|---|---|
+| 1/5 环境检查 | python>=3.10、docker info | Windows 上查 `python`（不依赖 `python3`）；Docker Desktop 提示 “启动 Docker Desktop” |
+| 2/5 venv + 依赖 | 创建 `.venv`，`pip install -e .` | venv 路径 `.venv\Scripts\python.exe`（不是 `bin/python`） |
+| 3/5 题库 DB | 缺失时下载 Release URL | 走 `Invoke-WebRequest`（PowerShell 原生，不依赖 curl） |
+| 4/5 评测镜像 | `docker image inspect` 短路 / pull / OSS tar 降级 | 同 macOS；镜像 arch 提示 Windows on ARM 需 x86_64 emulation |
+| 5/5 demo 预热 | 调 `python -m swebench_exp_lite` 预跑 S2 | 等价 |
+| 自检 | `list --limit 3` + 323 断言 | 等价 |
+
+看到 `安装完成。下一步：pwsh scripts/windows/run-demo.ps1` 即安装成功。
+
+详细 Windows 11 说明与已知坑：见 [scripts/windows/README.md](scripts/windows/README.md)。
+
 ## 3. 手把手：pylint-dev__pylint-7080
 
 ### 3.1 跑起来
 
+**macOS / Linux：**
+
 ```bash
 ./run_demo.sh
+```
+
+**Windows 11：**
+
+```powershell
+pwsh scripts/windows/run-demo.ps1
 ```
 
 约 1-5 分钟（首次稍慢）。成功输出尾部：
@@ -219,8 +267,16 @@ resolved 是相对 **gold 测试集**（官方 test_patch 定义的 F2P/P2P）�
 
 ### 5.1 检测可用 CLI
 
+**macOS / Linux：**
+
 ```bash
 ./check-agents.sh
+```
+
+**Windows 11：**
+
+```powershell
+pwsh scripts/windows/check-agents.ps1
 ```
 
 ### 5.2 四个品牌平行支持（无首选）
@@ -238,8 +294,17 @@ resolved 是相对 **gold 测试集**（官方 test_patch 定义的 F2P/P2P）�
 
 ### 5.3 用法
 
+**macOS / Linux：**
+
 ```bash
 .venv/bin/python -m swebench_exp_lite run \
+    --instance pylint-dev__pylint-7080 --adapter kimi-agent
+```
+
+**Windows 11：**
+
+```powershell
+.venv\Scripts\python.exe -m swebench_exp_lite run `
     --instance pylint-dev__pylint-7080 --adapter kimi-agent
 ```
 
@@ -323,4 +388,4 @@ resolved 相对 gold 测试集判定，baseline 只影响"这道题是否本来�
 
 ---
 
-*本教程所有命令均在 macOS + Docker Desktop 环境实跑核对（0.1.0 pre-release）。*
+*本教程所有命令均在 macOS + Docker Desktop + Windows 11 + PowerShell 7+ 环境实跑核对（0.2.0 pre-release）。*

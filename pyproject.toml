@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "swebench-exp-lite"
-version = "1.0.0"
+version = "0.2.0"
 description = "SWE-bench 精简教学实验平台：出题 → Agent 做题 → 自动打分的最小闭环"
 readme = "README.md"
 requires-python = ">=3.10"

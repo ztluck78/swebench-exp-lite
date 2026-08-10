@@ -24,3 +24,5 @@ output/
 .DS_Store
 .idea/
 .vscode/
+.qoder/                # Qoder IDE 缓存
+.trae/                 # Trae IDE / spec 工作流产物

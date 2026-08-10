@@ -14,17 +14,36 @@ SWE-bench 精简教学实验平台：在本地用一条命令跑通「出题 →
 
 ## 快速开始
 
+### macOS / Linux
+
 ```bash
 ./start.sh          # 幂等安装：venv + 依赖 + DB + 评测镜像 + 自检
 ./run_demo.sh       # 用 replay-agent 跑 pylint-dev__pylint-7080 闭环演示
 ./check-agents.sh   # 检测本机可用的 Agent CLI
 ```
 
+### Windows 11
+
+```powershell
+pwsh scripts/windows/install.ps1     # 幂等安装
+pwsh scripts/windows/run-demo.ps1    # 闭环演示
+pwsh scripts/windows/check-agents.ps1  # Agent CLI 检测
+```
+
+或 `.cmd` 兜底（pwsh 缺失时降级 PowerShell 5.1）：
+
+```cmd
+scripts\windows\install.cmd
+scripts\windows\run-demo.cmd
+```
+
 完整教程（8 章，手把手）：[GETTING-STARTED.md](GETTING-STARTED.md)
 
 ## 平台支持
 
-0.1.0 支持平台：**macOS**（Docker Desktop）。Ubuntu/WSL2、Windows、Apple Silicon 慢速优化列在 v1.1+ 路线图。
+- **0.1.0**：macOS（Docker Desktop）—— 红线验证 `replay-agent` 跑通 `pylint-dev__pylint-7080`
+- **0.2.0**：+ Windows 11（PowerShell 7+ / 5.1，Docker Desktop WSL2 backend）
+- 路线图：Ubuntu、WSL2、ARM x86_64 emulation 验证
 
 ## 仓库结构
 
