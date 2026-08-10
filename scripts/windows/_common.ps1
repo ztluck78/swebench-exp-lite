@@ -211,10 +211,14 @@ print(LiteDB().docker_image('$Script:DemoInstance'))
         }
         docker load -i $tarPath 2>&1 | Out-Null
         if ($LASTEXITCODE -ne 0) {
-            # 诊断：捕获 docker load 完整输出
+            # 诊断：重新调 docker load 抓错（不吞 stderr）
             $loadLog = & docker load -i $tarPath 2>&1
             $tarSize = if (Test-Path $tarPath) { (Get-Item $tarPath).Length } else { -1 }
-            throw "docker load 失败（tarSize=$tarSize bytes，excerpt: $($loadLog -join ' | ' | Select-Object -First 1 200 chars)）"
+            $firstLine = ($loadLog | Select-Object -First 1)
+            $errExcerpt = if ($null -ne $firstLine) { $firstLine } else { '(无输出)' }
+            Write-Err "OSS tar: path=$tarPath size=$tarSize bytes"
+            Write-Err "docker load stderr: $errExcerpt"
+            throw "docker load 失败 (size=$tarSize, err='$errExcerpt')"
         }
         Remove-Item $tarPath -ErrorAction SilentlyContinue
         Write-Info "OSS tar 加载完成"
