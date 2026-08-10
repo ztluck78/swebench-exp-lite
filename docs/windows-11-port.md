@@ -143,29 +143,45 @@ Windows mock 路径用 `sys.modules['ctypes']` 替换 + `os.name` mock，验证�
 
 ### 7.1 现象
 
-0.2.0 首个 CI run（`31369443267`）两个 job 都挂：
+0.2.0 多个 CI run（`31369443267` / `31370107917` / `31370348239` / `31370599680` / `31370934024` / `31373014007` / `31374665333` / `31376304630` / `31377862695` / `31379261939`）反复调试后发现：
 
-- **macos-latest job**：挂于 `start.sh` Step 1 环境检查。日志：`错误：未安装 docker（macOS 请装 Docker Desktop）`
-- **windows-latest job**：Step 1-3 通过（python / docker daemon / DB 都 OK），Step 4/5 拉镜像时挂。日志：`docker load 失败`（OSS tar 在 Windows runner 上加载报错）
+- **macos-latest job** ✓ 跑通：colima + docker CLI + qemu + lima-additional-guestagents 装包 → x86_64 VM 启动 → docker pull swebench 镜像 → bash ./start.sh + bash ./run_demo.sh → 断言 `result.json.resolved=true` 过
+- **windows-latest job** ✗ 挂在 Step 4/5（OSS tar 加载）。错误：`docker load stderr: cannot load linux image on windows`
 
-### 7.2 根因：GitHub Actions hosted runner 不预装 Docker Desktop
+### 7.2 根因：GitHub Actions hosted runner 不预装 Docker Desktop（GUI 客户端）
 
-| Runner | Docker 状态 | 可否跑红线 |
-|---|---|---|
-| `ubuntu-latest` | 需自助装（特权 + apt 仓库） | 可以（加 `setup-docker-action`） |
-| `macos-latest` | **默认不装**（需企业版特权） | 不可以 |
-| `windows-latest` | 自带 docker daemon | 可以拉镜像但拉不到 x86_64 评估镜像（网络问题） |
+| Runner | Docker 状态 | 可否跑红线 | 根因 |
+|---|---|---|---|
+| `ubuntu-latest` | 需自助装（特权 + apt 仓库） | 可以（加 `setup-docker-action`） | Ubuntu runner 装 Linux docker daemon 容易 |
+| `macos-latest` | 默认不装（需企业版特权） | 可以（用 colima + qemu + x86_64 模拟） |  colima 开源 Docker for Mac，可装包 + 启 VM |
+| `windows-latest` | 自带 docker daemon，**但默认 Windows containers mode** | **物理上无法在 hosted runner 切到 Linux containers** | 切 daemon 需 DockerCli.exe（GUI 客户端），hosted runner 默认装 headless Docker Engine（无 GUI） |
 
-这是 hosted runner 的设计限制，不是代码 bug。
+### 7.3 Windows 调试全过程（5+ turn，9 次 CI run）
 
-### 7.3 修法：CI 拆成两层
+| 尝试 | 结果 |
+|---|---|
+| `DockerCli.exe -SwitchDaemon`（GUI 路径） | DockerCli.exe 在 hosted runner 不存在（`Test-Path` 返回 false） |
+| 重写 throw 语法暴露 docker load 真实 stderr | 揭示 `cannot load linux image on windows`（Windows containers daemon 拒绝 load Linux 镜像） |
+| `wsl docker load` 走 WSL2 backend | WSL2 模式下 docker CLI 在 WSL2 内，但 daemon 仍是 host Windows 服务（同一个 Windows containers daemon），错误相同 |
+| 修改 Windows 注册表改 daemon mode | 风险大，且 Docker Desktop 内部实现不依赖注册表 |
+
+**最终结论**：在 GitHub Actions hosted Windows runner 上跑 docker load Linux 镜像，需要 daemon mode 切换，而切换需要 DockerCli.exe，hosted runner 默认装的是 headless Docker Engine。**这是 hosted runner 物理限制，本仓无法在 CI 内解决**。
+
+### 7.4 macOS runner 为什么能跑通
+
+- macOS hosted runner 默认不装 Docker；可以 `brew install colima docker qemu lima-additional-guestagents` 装开源替代品
+- colima 启 x86_64 Linux VM（qemu 模拟），里面跑原生 Linux docker daemon
+- docker load Linux 镜像 在 Linux daemon 下**完全无问题**（daemon 本身就在 Linux 上）
+- 代价：x86_64 模拟下跑 SWE-bench 评估较慢，整个 CI run ~16-18 分钟
+
+### 7.5 修法：CI 拆成两层
 
 | 层 | 位置 | 负责 | 平台 |
 |---|---|---|---|
 | 静态验证层 | GitHub Actions hosted CI | Python 依赖装 + 包 import + 14 单测 + bash/PowerShell 脚本语法 | macOS + Windows |
 | 红线验证层 | 用户真机 / self-hosted runner | `start.sh` / `run-demo.ps1` 跑通 + result.json 断言 | macOS / Windows 真机 |
 
-### 7.4 静态验证的覆盖范围
+### 7.6 静态验证的覆盖范围
 
 CI 静态检查能挡住的回归类型：
 
@@ -180,11 +196,26 @@ CI 静态检查能挡住的回归类型：
 - Docker 镜像拉不到（不在托管 runner 环境跑）
 - S6 评分结果（需要真机 Docker）
 
-### 7.5 红线验证后续动作
+### 7.7 macOS CI 实际跑通红线 demo
+
+CI run `31370934024`（17m11s）和 `31379261939` 等多次：
+
+- macos-latest job ✓ 完整跑通：
+  - Step 1：装 colima + docker CLI + qemu + lima-additional-guestagents（brew）→ 启 colima VM
+  - Step 2-3：venv + 依赖 + DB 下载
+  - Step 4：docker pull swebench 镜像（或 OSS tar 加载）
+  - Step 5：bash ./start.sh + bash ./run_demo.sh（install + 红线 demo）
+  - 断言：result.json.resolved=true + report_source=instance_report ✓
+- windows-latest job ✗ 物理限制（见 7.3 节）
+
+这是 plan §9 CI 部分的关键成就：**macOS CI 实际跑通红线 + 断言通过**。
+
+### 7.8 红线验证后续动作
 
 - 用户在 Windows 11 真机跑 `pwsh scripts/windows/install.ps1` + `run-demo.ps1`，记录 `output\pylint-dev__pylint-7080\result.json`
-- 后期可上 self-hosted runner（自建 GitHub Actions runner，带 Docker Desktop）
-- Ubuntu 适配（v0.3+）后可加 `ubuntu-latest` job 到 CI，矩阵变三平台
+- 真机 Docker Desktop 默认 Linux containers mode（个人电脑 vs hosted runner 不同），会直接跑通
+- 后期可上 self-hosted runner（自建 GitHub Actions runner，带 Docker Desktop GUI 客户端）
+- Ubuntu 适配（v0.3+）后可加 `ubuntu-latest` job 到 CI，矩阵变三平台（macOS 静态 + Ubuntu 红线 + Windows 静态）
 
 ---
 
