@@ -26,6 +26,9 @@ harness 内部自引用（run_evaluation / prepare_images / log_parsers/* / test
 answer_evaluator 整体原样移植，包名与内部 import 均不改；仅按裁剪清单删非 Python 语言文件与 modal 残留。
 唯一联动：`pipeline/stages/s6_score.py` 以子进程 `python -m answer_evaluator.harness.run_evaluation` 调用，cwd=仓根（H1）。
 
+实施补记：spec 聚合点清单遗漏 `harness/__init__.py`——它 import 了被删的
+`remove_containers`，裁剪时须同步移除（已处理）。
+
 ## 3. `from tools`（全部 **删**，不随移植携带）
 
 | 出现点 | 用途 | 处置 |
