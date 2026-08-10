@@ -48,10 +48,16 @@ scripts\windows\run-demo.cmd
 ## CI 策略
 
 GitHub Actions hosted runner **不预装 Docker Desktop**（macOS runner 完全没有，
-windows runner 有但网络拉不到 x86_64 镜像），所以 hosted CI 跑"双平台 Python
-静态验证 + 单元测试 + 脚本语法检查"——这是 hosted runner 能跑通的最大子集。
-**完整红线（`start.sh` / `run-demo.ps1` 跑通）需在真机 / self-hosted runner 上验证**。
-详见 [docs/windows-11-port.md](docs/windows-11-port.md) §CI 限制。
+windows runner 有但网络拉不到 x86_64 镜像），所以 hosted CI 拆成两层：
+
+- **ubuntu-latest**：装 Docker + PowerShell（microsoft/powershell apt 仓库），
+  跑 `start.sh` + `pwsh scripts/windows/run-demo.ps1` + 断言
+  `result.json.resolved=true`（约 1.5 分钟）。
+- **macos-latest + windows-latest**：跑静态验证（包 import + 14 单测 + 脚本语法），
+  挡住「包不能 import / 单测挂 / 语法错」类回归（< 1 分钟）。
+
+完整红线在 macOS / Windows 真机上验证（详见 [docs/windows-11-port.md](docs/windows-11-port.md)
+§7 CI 限制）。
 
 ## 仓库结构
 
