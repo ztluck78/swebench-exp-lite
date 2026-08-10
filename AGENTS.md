@@ -16,7 +16,7 @@
 | `scripts/ubuntu/` | 未来 Ubuntu 适配位 | 占位（`.gitkeep`） |
 | `scripts/macos/` | macOS 入口扩展示位 | 0.1.0 脚本仍留在仓根，本目录未来扩展用 |
 | `.gitattributes` | 行尾规范化 | 新增：`.sh` 强制 LF，`.ps1` 允许 CRLF（防 Windows 开发者 clober 根 .sh） |
-| `.github/workflows/ci.yml` | 双平台红线条目 | macos-latest + windows-latest 并行 |
+| `.github/workflows/ci.yml` | 双平台静态验证 | macos-latest + windows-latest 各跑 Python 静态验证 + 单元测试 + 脚本语法检查（hosted runner **不跑完整红线**，原因见 docs/windows-11-port.md §CI 限制） |
 
 依赖口径：全仓只允许 docker / tqdm / unidiff / requests 四件套。
 禁止引入 `datasets`、`python-dotenv`（数据集走本地 .jsonl）。
@@ -47,5 +47,7 @@
   `output\pylint-dev__pylint-7080\result.json` 含 `resolved=true` 且可追溯
   `logs\run_evaluation\` 下真实 report.json。
 
-两个平台在 CI（`.github/workflows/ci.yml`）的 `macos-latest` 与
-`windows-latest` 两个 job 上同时验证通过，方可发版。
+**CI 验收（hosted runner）**：`.github/workflows/ci.yml` 静态检查
+（Python 依赖装、包 import、单测 14 用例、bash + PowerShell 脚本语法）。
+完整红线需在真机 / self-hosted runner 上验证（hosted runner 限制详见
+docs/windows-11-port.md §CI 限制）。

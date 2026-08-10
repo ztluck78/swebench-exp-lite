@@ -45,6 +45,14 @@ scripts\windows\run-demo.cmd
 - **0.2.0**：+ Windows 11（PowerShell 7+ / 5.1，Docker Desktop WSL2 backend）
 - 路线图：Ubuntu、WSL2、ARM x86_64 emulation 验证
 
+## CI 策略
+
+GitHub Actions hosted runner **不预装 Docker Desktop**（macOS runner 完全没有，
+windows runner 有但网络拉不到 x86_64 镜像），所以 hosted CI 跑"双平台 Python
+静态验证 + 单元测试 + 脚本语法检查"——这是 hosted runner 能跑通的最大子集。
+**完整红线（`start.sh` / `run-demo.ps1` 跑通）需在真机 / self-hosted runner 上验证**。
+详见 [docs/windows-11-port.md](docs/windows-11-port.md) §CI 限制。
+
 ## 仓库结构
 
 ```

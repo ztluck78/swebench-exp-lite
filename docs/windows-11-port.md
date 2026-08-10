@@ -139,7 +139,56 @@ Windows mock 路径用 `sys.modules['ctypes']` 替换 + `os.name` mock，验证�
 
 任何 PR 改动后两个 job 都必须过，方可合并 main。
 
-## 7. 未来加 Ubuntu 适配的 checklist
+## 7. CI 限制（hosted runner 与红线 demo 的冲突）
+
+### 7.1 现象
+
+0.2.0 首个 CI run（`31369443267`）两个 job 都挂：
+
+- **macos-latest job**：挂于 `start.sh` Step 1 环境检查。日志：`错误：未安装 docker（macOS 请装 Docker Desktop）`
+- **windows-latest job**：Step 1-3 通过（python / docker daemon / DB 都 OK），Step 4/5 拉镜像时挂。日志：`docker load 失败`（OSS tar 在 Windows runner 上加载报错）
+
+### 7.2 根因：GitHub Actions hosted runner 不预装 Docker Desktop
+
+| Runner | Docker 状态 | 可否跑红线 |
+|---|---|---|
+| `ubuntu-latest` | 需自助装（特权 + apt 仓库） | 可以（加 `setup-docker-action`） |
+| `macos-latest` | **默认不装**（需企业版特权） | 不可以 |
+| `windows-latest` | 自带 docker daemon | 可以拉镜像但拉不到 x86_64 评估镜像（网络问题） |
+
+这是 hosted runner 的设计限制，不是代码 bug。
+
+### 7.3 修法：CI 拆成两层
+
+| 层 | 位置 | 负责 | 平台 |
+|---|---|---|---|
+| 静态验证层 | GitHub Actions hosted CI | Python 依赖装 + 包 import + 14 单测 + bash/PowerShell 脚本语法 | macOS + Windows |
+| 红线验证层 | 用户真机 / self-hosted runner | `start.sh` / `run-demo.ps1` 跑通 + result.json 断言 | macOS / Windows 真机 |
+
+### 7.4 静态验证的覆盖范围
+
+CI 静态检查能挡住的回归类型：
+
+- 包不能 import（commit 2 改坏的 answer_evaluator 会发现）
+- 单测逻辑挂（14 用例）
+- bash / PowerShell 脚本语法错（PR 阶段拦下）
+- Python 依赖装不上
+
+静态检查**挡不住**的：
+
+- PowerShell 脚本运行时逻辑错（只检查 AST 不执行）
+- Docker 镜像拉不到（不在托管 runner 环境跑）
+- S6 评分结果（需要真机 Docker）
+
+### 7.5 红线验证后续动作
+
+- 用户在 Windows 11 真机跑 `pwsh scripts/windows/install.ps1` + `run-demo.ps1`，记录 `output\pylint-dev__pylint-7080\result.json`
+- 后期可上 self-hosted runner（自建 GitHub Actions runner，带 Docker Desktop）
+- Ubuntu 适配（v0.3+）后可加 `ubuntu-latest` job 到 CI，矩阵变三平台
+
+---
+
+## 8. 未来加 Ubuntu 适配的 checklist
 
 按本文档 + plan 文件 §6 流程，加 Ubuntu 适配时：
 
