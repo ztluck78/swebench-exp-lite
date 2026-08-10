@@ -123,6 +123,14 @@ function Step-EnvCheck {
         Write-Err "未安装 docker（请装 Docker Desktop for Windows，启用 WSL2 backend）。"
         return $false
     }
+    # Windows Docker Desktop 默认是 Windows containers mode；load Linux 镜像会报
+    # 'cannot load linux image on windows'。提前切到 Linux containers（重启 daemon）。
+    $dockerCli = Join-Path $env:ProgramFiles "Docker\Docker\DockerCli.exe"
+    if (Test-Path $dockerCli) {
+        Write-Info "切 Docker daemon 到 Linux containers（DockerCli -SwitchDaemon）"
+        & $dockerCli -SwitchDaemon 2>&1 | Out-Null
+        Start-Sleep -Seconds 30  # daemon 重启需要时间
+    }
     docker info 2>&1 | Out-Null
     if ($LASTEXITCODE -ne 0) {
         Write-Err "docker daemon 未运行（请启动 Docker Desktop，等状态栏图标稳定后再试）。"
