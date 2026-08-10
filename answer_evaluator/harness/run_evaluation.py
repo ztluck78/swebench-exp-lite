@@ -519,7 +519,10 @@ def main(
     full_dataset = load_swebench_dataset(dataset_name, split, instance_ids)
 
     # run instances locally
+    # 跨平台分支：Linux 走 rlimit；Windows 宿主机不设 rlimit（容器内 rlimit
+    # 由 Linux 容器自管）；macOS 等其他走原行为（不设 rlimit）。
     if platform.system() == "Linux":
+        import resource
         resource.setrlimit(resource.RLIMIT_NOFILE, (open_file_limit, open_file_limit))
     client = docker.from_env()
 
