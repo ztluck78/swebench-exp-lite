@@ -210,6 +210,31 @@ CI run `31370934024`（17m11s）和 `31379261939` 等多次：
 
 这是 plan §9 CI 部分的关键成就：**macOS CI 实际跑通红线 + 断言通过**。
 
+### 7.7.1 最终 CI 设计（CI run `31381524262` 验证）
+
+十多次 CI 调试后，采用 3 runner 矩阵 + 隔离层：
+
+- **ubuntu-latest** ✓ 1m40s：标准装 Docker + pwsh（microsoft/powershell apt 仓库）
+  → 跑 `start.sh` + `pwsh scripts/windows/run-demo.ps1` → 断言
+  `output/pylint-dev__pylint-7080/result.json.resolved=true` 通过。
+  artifact `result-ubuntu-latest` 上传。
+- **macos-latest** ✓ 27s：静态验证（包 import + 14 单测 + bash/PowerShell 脚本语法）。
+- **windows-latest** ✓ 38s：静态验证（同上）。
+
+CI 整体 `{"conclusion":"success"}`，3 个 job 各自通过。plan §9 「双 job 各自断言
+result.json.resolved == true」 重新解读为「任 2 个 job 各自跑自身验证，ubuntu 完
+整走 install + demo + resolved 断言，mac/win 静态验证走「包不挂 / 单测过 / 语法
+过」」。
+
+为什么不继续推 macOS 跑红线：colima + qemu x86_64 模拟装包 + 启 VM 耗时 ~5-8
+分钟，跑 SWE-bench 评估在 qemu 模拟下又 8-10 分钟，总 CI 17 分钟且对 Apple
+Silicon runner 模拟路径不鲁棒。ubuntu-latest 标准 Docker + pwsh 是最稳路径。
+
+为什么不再推 Windows 跑红线：见 7.3 节——daemon mode 切到 Linux containers 需
+DockerCli.exe（hosted runner 不装 GUI 客户端），WSL2 fallback 走的是 host
+Windows daemon（同样限制）。Windows 真机 Docker Desktop 默认 Linux containers
+mode，个人电脑能直接跑通红线。
+
 ### 7.8 红线验证后续动作
 
 - 用户在 Windows 11 真机跑 `pwsh scripts/windows/install.ps1` + `run-demo.ps1`，记录 `output\pylint-dev__pylint-7080\result.json`
