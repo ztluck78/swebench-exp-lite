@@ -100,16 +100,20 @@ jobs:
         if: matrix.os == 'macos-latest'
         shell: bash
         run: |
-          # macOS hosted runner 默认无 Docker；装 colima + docker CLI（colima 依赖 docker CLI）
-          # 慢但能跑：约 3-5 分钟
+          # macOS hosted runner 默认无 Docker；装 colima + docker CLI + qemu-img
+          # colima 启 x86_64 模拟需要 qemu-img（lima 内置 x86_64 emulation）
+          # 慢但能跑：约 5-8 分钟
           if ! command -v colima >/dev/null 2>&1; then
             brew install colima
           fi
           if ! command -v docker >/dev/null 2>&1; then
             brew install docker
           fi
+          if ! command -v qemu-img >/dev/null 2>&1; then
+            brew install qemu
+          fi
           # 启 colima（CPU 4 / 内存 8GB / 磁盘 60GB；Apple Silicon 上需要 x86_64 模拟）
-          colima status 2>/dev/null | grep -q "running" || colima start --cpu 4 --memory 8 --disk 60 --arch x86_64
+          colima status 2>/dev/null | grep -q "running" || colima start --cpu 4 --memory 8 --disk 60 --arch x86_64 --vm-type=qemu
           # 验证 docker 通了
           docker info >/dev/null
           echo "Docker OK via colima"
