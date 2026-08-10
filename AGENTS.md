@@ -13,10 +13,10 @@
 | `docs/` | import 映射表、移植笔记等 | 可增补 |
 | `start.sh / run_demo.sh / check-agents.sh` | macOS 部署与演示入口 | 0.1.0 红线脚本，字节级不动；幂等 |
 | `scripts/windows/` | Windows 11 适配（PowerShell + .cmd 兑底） | 0.2.0 新增；幂等；与 macOS .sh 逐段对应；详见 scripts/windows/README.md |
-| `scripts/ubuntu/` | 未来 Ubuntu 适配位 | 占位（`.gitkeep`） |
+| `scripts/ubuntu/` | Ubuntu x86_64 适配（bash 入口脚本） | 0.3.0 新增；幂等；与 macOS .sh 逐段对应；含 Ubuntu 专属前置检测（docker 组 / python3-venv）；详见 scripts/ubuntu/README.md |
 | `scripts/macos/` | macOS 入口扩展示位 | 0.1.0 脚本仍留在仓根，本目录未来扩展用 |
 | `.gitattributes` | 行尾规范化 | 新增：`.sh` 强制 LF，`.ps1` 允许 CRLF（防 Windows 开发者 clober 根 .sh） |
-| `.github/workflows/ci.yml` | **PR 防线**（静态验证 + 单测）| 0.2.0 重构后：CI 只挡 import / 语法 / 单测挂类回归；**不跑 install.ps1 / run-demo.ps1 红线**（之前 17m 太慢 + colima/qemu 脆弱）。完整红线由本地集成测试（见 `scripts/local-test.sh` / `scripts/local-test.ps1`）和真机验证（plan §10 跟进）承担 |
+| `.github/workflows/ci.yml` | **PR 防线** + **Ubuntu CI 红线** | 0.3.0 重构后：static job（mac/win，30s 静态） + ubuntu-redline job（Ubuntu，静态 + 红线 ~2-5min）。完整红线由本地集成测试（见 `scripts/local-test.sh` / `scripts/windows/local-test.ps1` / `scripts/ubuntu/local-test.sh`）和真机验证（plan §10 跟进）承担 |
 
 依赖口径：全仓只允许 docker / tqdm / unidiff / requests 四件套。
 禁止引入 `datasets`、`python-dotenv`（数据集走本地 .jsonl）。
@@ -36,7 +36,7 @@
 - 反向禁止：本仓的教学化简化不得回流污染主仓。
 - 移植来源基准 SHA 见首个 commit message。
 
-## 验收红线（0.2.0 出口）— **以本地集成测试为主，CI 为辅**
+## 验收红线（0.3.0 出口）— **本地集成测试为主，Ubuntu CI 红线为辅**
 
 0.2.0 重构后验证策略（受 user 反馈"本地完整测试，不要再烧 CI 时间"调整）：
 

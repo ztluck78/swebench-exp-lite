@@ -19,6 +19,7 @@ CI 步骤见 .github/workflows/ci.yml。
 from __future__ import annotations
 
 import os
+import platform as _platform
 import sys
 import unittest
 from unittest import mock
@@ -161,6 +162,44 @@ class TestInvariants(unittest.TestCase):
         self.assertIsInstance(venv_bin_dir(), str)
         self.assertIsInstance(default_shell(), str)
         self.assertIsInstance(is_process_alive(os.getpid()), bool)
+
+
+# ---------------------------------------------------------------------------
+# Linux 真路径（仅在 Linux 上运行，macOS / Windows 跳过）
+# ---------------------------------------------------------------------------
+class TestLinuxSpecific(unittest.TestCase):
+    """Linux 真机断言：在 ubuntu-latest CI 上真实运行，验证 POSIX 分支
+    在 Linux 内核上的实际行为（非 mock）。"""
+
+    def _skip_if_not_linux(self):
+        if _platform.system() != "Linux":
+            self.skipTest("Linux-only assertion")
+
+    def test_null_device_on_linux(self):
+        self._skip_if_not_linux()
+        self.assertEqual(null_device(), "/dev/null")
+
+    def test_venv_bin_dir_on_linux(self):
+        self._skip_if_not_linux()
+        self.assertEqual(venv_bin_dir(), "bin")
+
+    def test_default_shell_on_linux(self):
+        self._skip_if_not_linux()
+        self.assertEqual(default_shell(), "bash")
+
+    def test_is_process_alive_self_on_linux(self):
+        self._skip_if_not_linux()
+        self.assertTrue(is_process_alive(os.getpid()))
+
+    def test_resource_import_on_linux(self):
+        """验证 answer_evaluator 的跨平台分支在 Linux 上正确：
+        import resource 应当成功（Linux 内核支持 rlimit）。
+        这守护了 prepare_images.py / run_evaluation.py 的
+        ``if platform.system() == 'Linux': import resource`` 分支。"""
+        self._skip_if_not_linux()
+        import resource  # noqa: F401
+        self.assertTrue(hasattr(resource, "setrlimit"))
+        self.assertTrue(hasattr(resource, "RLIMIT_NOFILE"))
 
 
 if __name__ == "__main__":

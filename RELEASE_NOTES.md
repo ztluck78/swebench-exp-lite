@@ -1,3 +1,80 @@
+# v0.3.0 Release Notes
+
+> 发布日期：2026-08-11
+> 核心变更：Ubuntu x86_64 适配 + CI 红线回归
+
+## 概述
+
+v0.3.0 是 swebench-exp-lite 的 **Ubuntu x86_64 适配版本**。在 v0.2.0（macOS + Windows 11）的基础上，把项目扩展到三平台支持。Ubuntu 是三平台中评测镜像运行最“原生”的环境（x86_64 Linux 镜像在 Ubuntu 上直接运行，无需 Rosetta 或 WSL2），同时是 CI 唯一能跑完整红线的平台。
+
+**Python 代码层零改动**：0.2.0 的平台抽象层（`platform.py`）和 `answer_evaluator` 跨平台分支已完全兼容 Ubuntu，无需任何修改。
+
+## 主要变更
+
+### 新增：Ubuntu x86_64 适配
+
+| 文件 | 作用 |
+|---|---|
+| `scripts/ubuntu/_common.sh` | 共享函数库：5 个 Step 函数 + Ubuntu 专属前置检测（docker 组 / python3-venv） |
+| `scripts/ubuntu/install.sh` | 幂等安装入口（与 macOS start.sh / Windows install.ps1 对应） |
+| `scripts/ubuntu/run-demo.sh` | replay-agent 闭环演示 |
+| `scripts/ubuntu/check-agents.sh` | Agent CLI 可用性检测 |
+| `scripts/ubuntu/local-test.sh` | Ubuntu 本地集成测试 |
+| `scripts/ubuntu/README.md` | Ubuntu 专属说明（依赖、已知坑、验证状态） |
+
+### CI 红线回归（关键变化）
+
+| 阶段 | v0.2.0 | v0.3.0 |
+|---|---|---|
+| mac/win CI | 静态 + 单测（30s） | 不变 |
+| ubuntu CI | 静态 + 单测（30s） | **静态 + 红线 + 断言**（~2-5min） |
+| CI 架构 | 单 job 三平台矩阵 | 双 job：static（mac/win）+ ubuntu-redline |
+
+Ubuntu 是唯一能在 CI 原生跑 Docker 红线的平台（Linux on Linux，无虚拟化层，实测 1m40s）。
+
+### 单测补充
+
+- `test_platform.py` 新增 `TestLinuxSpecific` 类（5 个测试用例）：Linux 真路径断言 + `import resource` 守护
+
+### 文档
+
+| 文件 | 作用 |
+|---|---|
+| `docs/ubuntu-port.md` | 新增——Ubuntu 移植笔记（设计决策、踩坑记录、CI 设计） |
+| `README.md` | 平台支持段加 Ubuntu；快速开始加 Ubuntu 代码块 |
+| `GETTING-STARTED.md` | 环境准备加 Ubuntu；一键安装加 Ubuntu 段 |
+| `AGENTS.md` | scripts/ubuntu/ 从“占位”改为正式描述 |
+| `docs/windows-11-port.md` | §8 checklist 标记各项完成 |
+
+## 破坏性变更
+
+**无破坏性变更**：
+
+- 仓根 `.sh`（`start.sh` / `run_demo.sh` / `check-agents.sh`）**保留**，字节级不动
+- Python 包 import 路径未变
+- 数据格式未变
+- v0.2.0 的 Windows PowerShell 脚本未变
+
+迁移成本：**零**。
+
+## 升级指南
+
+```bash
+git pull origin main
+
+# Ubuntu 用户
+bash scripts/ubuntu/install.sh
+bash scripts/ubuntu/run-demo.sh
+
+# macOS 用户（不变）
+./scripts/local-test.sh
+
+# Windows 用户（不变）
+pwsh scripts/windows/local-test.ps1
+```
+
+---
+
 # v0.2.0 Release Notes
 
 > 发布日期：2026-08-10

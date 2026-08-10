@@ -52,7 +52,7 @@ resolved = F2P 全部通过 ∧ P2P 全部通过
 
 ## 1. 环境准备
 
-**0.2.0 支持平台：macOS + Windows 11**。
+**0.3.0 支持平台：macOS + Windows 11 + Ubuntu x86_64**。
 
 > **Windows 11 用户**：请先看 [docs/user-guide-windows.md](../docs/user-guide-windows.md)——
 > 本教程的 §1 简化版只列平台差异，完整流程（装软件、跑 demo、FAQ、反馈）都在
@@ -62,8 +62,8 @@ resolved = F2P 全部通过 ∧ P2P 全部通过
 |---|---|
 | macOS（Intel / Apple Silicon） | 0.1.0 验证。Apple Silicon 通过 Rosetta 跑 x86_64 镜像，速度约为原生 1/2-1/3，demo 约 1-2 分钟，属正常预期 |
 | Windows 11 x86_64 + PowerShell 7+ | 0.2.0 验证。Docker Desktop 需启用 WSL2 backend |
-| Windows 11 x86_64 + PowerShell 5.1 | 0.2.0 验证（`.cmd` 兌底） |
-| Ubuntu | v0.3+ 路线图（`scripts/ubuntu/` 预留位） |
+| Windows 11 x86_64 + PowerShell 5.1 | 0.2.0 验证（`.cmd` 兖底） |
+| Ubuntu 22.04/24.04 x86_64 | 0.3.0 验证。Docker Engine 原生 daemon（最快平台） |
 | WSL2 | 路线图外（直接复用仓根 `start.sh` 即可，与 macOS 路径同） |
 
 需要预装：
@@ -71,11 +71,14 @@ resolved = F2P 全部通过 ∧ P2P 全部通过
 - **Python >= 3.10**
   - macOS：`python3 --version` 检查；推荐 3.10-3.12
   - Windows：[python.org](https://www.python.org/downloads/windows/) 下载器，安装时勾 "Add Python to PATH"
-- **Docker Desktop** 并且 daemon 处于运行状态（`docker info` 能输出即 OK）
-  - Windows 11 需启用 WSL2 backend（Settings → Resources → WSL Integration）
+  - Ubuntu：`sudo apt install python3 python3-venv python3-pip`（注意 `python3-venv` 必须单独装）
+- **Docker** 并且 daemon 处于运行状态（`docker info` 能输出即 OK）
+  - macOS / Windows：安装 Docker Desktop
+  - Ubuntu：`sudo apt install docker.io` 或 [Docker CE](https://docs.docker.com/engine/install/ubuntu/)，然后 `sudo systemctl start docker`
+  - Ubuntu 专属：把用户加入 docker 组：`sudo usermod -aG docker $USER && newgrp docker`
 - **PowerShell 7+**（仅 Windows）：`winget install Microsoft.PowerShell`
 - **磁盘空间**：单个评测镜像 1-4 GB；本教程的 demo 镜像约 4 GB
-- **git / curl**（macOS 自带；Windows 10+ 自带 curl，PowerShell 走 `Invoke-WebRequest` 代替 curl）
+- **git / curl**（macOS / Ubuntu 自带；Windows 10+ 自带 curl，PowerShell 走 `Invoke-WebRequest` 代替 curl）
 
 ## 2. 一键安装
 
@@ -99,6 +102,21 @@ cd swebench-exp-lite
 | 自检 | `python -m swebench_exp_lite list` 冒烟 + 断言题库恰 323 条；失败非零退出 | — |
 
 看到 `安装完成。下一步：./run_demo.sh` 即安装成功。
+
+### Ubuntu x86_64
+
+```bash
+git clone <本仓库地址> swebench-exp-lite
+cd swebench-exp-lite
+bash scripts/ubuntu/install.sh
+```
+
+`install.sh` 幂等（可重复执行），五步与 macOS `start.sh` 一一对应，
+额外包含 Ubuntu 专属前置检测（docker 组权限、python3-venv 包）。
+
+看到 `安装完成。下一步：bash scripts/ubuntu/run-demo.sh` 即安装成功。
+
+详细 Ubuntu 说明与已知坑：见 [scripts/ubuntu/README.md](scripts/ubuntu/README.md)。
 
 ### Windows 11
 
@@ -392,4 +410,4 @@ resolved 相对 gold 测试集判定，baseline 只影响"这道题是否本来�
 
 ---
 
-*本教程所有命令均在 macOS + Docker Desktop + Windows 11 + PowerShell 7+ 环境实跑核对（0.2.0 pre-release）。*
+*本教程所有命令均在 macOS + Docker Desktop / Windows 11 + PowerShell 7+ / Ubuntu 22.04 x86_64 + Docker Engine 环境实跑核对（0.3.0 pre-release）。*

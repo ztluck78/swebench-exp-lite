@@ -1,17 +1,17 @@
-# GitHub Actions CI: swebench-exp-lite 0.2.0
+# GitHub Actions CI: swebench-exp-lite 0.3.0
 #
-# 设计取舍（0.2.0 重构后）：
-# - CI 只做"PR 防线"——静态验证 + 单元测试（挡 import / 语法 / 单测挂类回归）
-# - CI 不再跑 install.ps1 / run-demo.ps1（之前 17m 太慢且依赖 colima / qemu 不可控）
-# - 完整红线由「本地集成测试」承担（见 scripts/local-test.sh + scripts/local-test.ps1）
-# - 真机红线由 plan §10 跟进（用户在 Win11 / macOS 真机跑 install + demo）
+# 设计取舍（0.3.0 重构后）：
+# - static job（macOS + Windows）：PR 防线——静态验证 + 单元测试（30s）
+# - ubuntu-redline job（Ubuntu）：静态验证 + 完整红线 demo + 断言 resolved=true（~2-5min）
+# - Ubuntu 是唯一能在 CI 原生跑 Docker 红线的平台（Linux on Linux，无虚拟化层）
+# - macOS / Windows 的完整红线由「本地集成测试」承担（见 scripts/local-test.sh / scripts/windows/local-test.ps1）
 #
 # 之前失败的尝试（commit 历史可查）：
 # - macos colima + qemu 跑红线 17m（CI run 31370934024 / 31379261939）
 # - windows docker load 物理限制（CI run 31377862695 等多次）
 # - 累计 70+ 分钟 CI 调试 + 17m 每次 PR 等待——ROI 严重倒挂
 #
-# 现在的策略：< 1 min CI，本地 5-10 min 集成测试，真机 5-10 min 真机验证
+# 现在的策略：mac/win < 1 min 静态 CI，Ubuntu ~2-5 min 红线 CI，本地 5-10 min 集成测试
 
 name: ci
 
@@ -32,7 +32,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest, windows-latest]
+        os: [macos-latest, windows-latest]
     timeout-minutes: 5
 
     steps:
@@ -80,7 +80,7 @@ jobs:
           echo "bash scripts OK"
 
       - name: PowerShell scripts syntax check
-        if: matrix.os != 'macos-latest'
+        if: matrix.os == 'windows-latest'
         shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
@@ -97,3 +97,62 @@ jobs:
             if ($errors.Count -gt 0) { throw "$f 解析错误: $($errors | Out-String)" }
           }
           Write-Host "PowerShell scripts OK"
+
+  ubuntu-redline:
+    name: ubuntu-latest (static + red-line)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Python dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -e .
+
+      - name: Platform layer import smoke
+        run: |
+          python -c "from swebench_exp_lite.runtime.platform import null_device, is_process_alive, venv_bin_dir, default_shell; print('platform 4 functions OK')"
+
+      - name: answer_evaluator import smoke
+        run: |
+          python -c "from answer_evaluator.harness.run_evaluation import main as re_main; from answer_evaluator.harness.prepare_images import main as pi_main; print('answer_evaluator import OK')"
+
+      - name: Unit tests (test_platform)
+        run: |
+          python -m unittest swebench_exp_lite.tests.test_platform -v
+
+      - name: bash scripts syntax check (root + ubuntu)
+        run: |
+          for f in start.sh run_demo.sh check-agents.sh \
+                   scripts/ubuntu/_common.sh scripts/ubuntu/install.sh \
+                   scripts/ubuntu/run-demo.sh scripts/ubuntu/check-agents.sh \
+                   scripts/ubuntu/local-test.sh; do
+            bash -n "$f" || { echo "bash -n $f failed"; exit 1; }
+          done
+          echo "all bash scripts OK"
+
+      - name: Ubuntu red-line install
+        run: bash scripts/ubuntu/install.sh
+
+      - name: Ubuntu red-line demo
+        run: bash scripts/ubuntu/run-demo.sh
+
+      - name: Assert result.json
+        run: |
+          python -c "
+          import json, sys
+          d = json.load(open('output/pylint-dev__pylint-7080/result.json'))
+          assert d.get('resolved') == True, f'resolved={d.get(\"resolved\")}'
+          assert d.get('report_source') == 'instance_report', f'report_source={d.get(\"report_source\")}'
+          print(f'PASS: resolved={d[\"resolved\"]} report_source={d[\"report_source\"]}')
+          "

@@ -1,3 +1,0 @@
-# 占位文件，让 scripts/ubuntu/ 在 git 留痕
-# 未来加 Ubuntu 适配时，移除此文件并替换为 install.sh / run-demo.sh / check-agents.sh
-# 与 scripts/windows/ 镜像对称

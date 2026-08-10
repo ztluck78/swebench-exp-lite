@@ -244,16 +244,15 @@ mode，个人电脑能直接跑通红线。
 
 ---
 
-## 8. 未来加 Ubuntu 适配的 checklist
+## 8. Ubuntu 适配 checklist（v0.3.0 已完成）
 
-按本文档 + plan 文件 §6 流程，加 Ubuntu 适配时：
+按本文档 + plan 文件 §6 流程，Ubuntu 适配各项状态：
 
-1. 把 `scripts/ubuntu/.gitkeep` 替换为 `install.sh` / `run-demo.sh` / `check-agents.sh` + `_common.sh`（bash 版共享函数库）
-2. 复用 macOS 主体（bash 99% 兼容），仅改 docker 启动提示（`systemctl start docker`）与 venv 路径（已是 `bin/`，无需改）
-3. `.github/workflows/ci.yml` 的 matrix 加 `ubuntu-latest`
-4. `README.md` 平台支持段加 Ubuntu
-5. `GETTING-STARTED.md` 1. 环境准备段加 Ubuntu
-6. `pyproject.toml` version 升 0.2.0 → 0.3.0
-7. 跑过双 job CI 后方可发版
-
-预计 Ubuntu 适配工作量：2-3 小时（0.2.0 时已为 Ubuntu 留 `scripts/ubuntu/` 占位 + matrix 留扩展位）。
+1. [x] 把 `scripts/ubuntu/.gitkeep` 替换为 `install.sh` / `run-demo.sh` / `check-agents.sh` + `_common.sh` + `local-test.sh`（bash 版共享函数库）
+2. [x] 复用 macOS 主体（bash 99% 兼容），仅改 docker 启动提示（`systemctl start docker`）与 Ubuntu 专属前置检测（docker 组 / python3-venv）
+3. [x] `.github/workflows/ci.yml` 拆分 static（mac/win）+ ubuntu-redline（Ubuntu 完整红线）
+4. [x] `README.md` 平台支持段加 Ubuntu
+5. [x] `GETTING-STARTED.md` 1. 环境准备段加 Ubuntu
+6. [x] `pyproject.toml` version 升 0.2.0 → 0.3.0
+7. [x] CI Ubuntu 红线跑通 + 断言 resolved=true
+8. [x] 新增 `docs/ubuntu-port.md`（与本文档对称）

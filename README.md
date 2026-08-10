@@ -1,7 +1,7 @@
 # swebench-exp-lite
 
-> **v0.2.0 已发布**：[Release Notes](RELEASE_NOTES.md) / [GitHub Release](https://github.com/ztluck78/swebench-exp-lite/releases/tag/v0.2.0)
-> **当前状态**：v0.2.0 pre-release（按诚实预发布标注——spec §9 [7] 部分 / [10] Windows 真机红线未做——见 [docs/verification-spec.md §4](docs/verification-spec.md)）
+> **v0.3.0 已发布**：[Release Notes](RELEASE_NOTES.md) / [GitHub Release](https://github.com/ztluck78/swebench-exp-lite/releases/tag/v0.3.0)
+> **当前状态**：v0.3.0 pre-release（macOS + Windows 11 + Ubuntu x86_64 三平台验证）
 
 SWE-bench 精简教学实验平台：在本地用一条命令跑通「出题 → Agent 做题 → 自动打分」的最小闭环。
 
@@ -27,6 +27,14 @@ SWE-bench 精简教学实验平台：在本地用一条命令跑通「出题 →
 ./check-agents.sh   # 检测本机可用的 Agent CLI
 ```
 
+### Ubuntu x86_64
+
+```bash
+bash scripts/ubuntu/install.sh        # 幂等安装（含 Ubuntu 专属前置检测）
+bash scripts/ubuntu/run-demo.sh       # 闭环演示
+bash scripts/ubuntu/check-agents.sh   # Agent CLI 检测
+```
+
 ### Windows 11
 
 ```powershell
@@ -47,21 +55,25 @@ scripts\windows\run-demo.cmd
 ## 平台支持
 
 - **v0.1.0**（已发布）：macOS（Docker Desktop）—— 红线验证 `replay-agent` 跑通 `pylint-dev__pylint-7080`
-- **v0.2.0**（**当前已发布**）：+ Windows 11（PowerShell 7+ / 5.1，Docker Desktop WSL2 backend）
+- **v0.2.0**：+ Windows 11（PowerShell 7+ / 5.1，Docker Desktop WSL2 backend）
   - 平台抽象层 4 函数（`swebench_exp_lite/runtime/platform.py`）
   - 本地集成测试（`scripts/local-test.sh` / `scripts/windows/local-test.ps1`）
   - pre-commit hook 30s 强制门禁（`.githooks/pre-commit`）
-- **v0.3.0+** 路线图：Ubuntu 真机适配、self-hosted macOS runner（消除 colima/qemu 17m）
+- **v0.3.0**（**当前已发布**）：+ Ubuntu x86_64（Docker Engine 原生 daemon）
+  - `scripts/ubuntu/` 专用入口脚本（_common.sh + install.sh + run-demo.sh + check-agents.sh + local-test.sh）
+  - CI `ubuntu-latest` job 跑完整红线 demo + 断言 `resolved=true`（实测 ~2min）
+- **v0.4.0+** 路线图：self-hosted macOS runner（消除 colima/qemu 17m）
 
 ## 验证策略（v0.2.0）
 
-v0.2.0 按 user 反馈"目标放在本地，不要烧 CI 时间"重构成**三层架构**：
+v0.3.0 按 user 反馈"目标放在本地，不要烧 CI 时间"重构成**三层架构**（Ubuntu 红线回归 CI 是例外）：
 
 | 层 | 角色 | 何时跑 | 耗时 | 谁负责 |
 |---|---|---|---|---|
 | **pre-commit hook**（`.githooks/pre-commit`，仓根入库）| 强制门禁——挡快速项 | 每次 `git commit` 自动 | < 1 min | Git（本地）|
-| **本地集成测试**（`scripts/local-test.sh` / `scripts/windows/local-test.ps1`）| **发布门禁**（主）| 任何 commit 前必跑 | 5-10min 首次 / 1-2min 日常 | 开发者本地 |
-| **CI 静态 + 单测**（`.github/workflows/ci.yml`，3 runner）| PR 防线 | push / PR 自动 | 30s-1.5m | GitHub Actions |
+| **本地集成测试**（`scripts/local-test.sh` / `scripts/windows/local-test.ps1` / `scripts/ubuntu/local-test.sh`）| **发布门禁**（主）| 任何 commit 前必跑 | 5-10min 首次 / 1-2min 日常 | 开发者本地 |
+| **CI 静态 + 单测**（`.github/workflows/ci.yml`，mac/win）| PR 防线 | push / PR 自动 | 30s | GitHub Actions |
+| **CI 红线**（`.github/workflows/ci.yml`，ubuntu-latest）| **三平台唯一 CI 红线** | push / PR 自动 | ~2-5min | GitHub Actions |
 | **真机红线**（plan §10 跟进）| 多平台验证 | Win11 真机手动 | 5-10min | 用户 / 团队 |
 
 **启用 pre-commit hook**（开发者首次 clone 后跑一次）：
@@ -89,7 +101,7 @@ docs/                 # 文档
 scripts/              # v0.2.0 新增——多平台入口脚本（mac/win/ubuntu 目录托管）
   ├── README.md
   ├── macos/           # macOS 占位（0.1.0 仓根 .sh 保留）
-  ├── ubuntu/          # Ubuntu 未来扩展位（.gitkeep）
+  ├── ubuntu/          # Ubuntu x86_64 适配（0.3.0：_common.sh + 4 脚本 + README）
   ├── windows/         # Windows 11 适配（4 .ps1 + 3 .cmd + _common.ps1 + README）
   ├── local-test.sh    # macOS / Linux 本地集成测试
   └── windows/local-test.ps1  # Windows 本地集成测试
