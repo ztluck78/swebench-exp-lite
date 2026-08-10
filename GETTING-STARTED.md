@@ -54,6 +54,10 @@ resolved = F2P 全部通过 ∧ P2P 全部通过
 
 **0.2.0 支持平台：macOS + Windows 11**。
 
+> **Windows 11 用户**：请先看 [docs/user-guide-windows.md](../docs/user-guide-windows.md)——
+> 本教程的 §1 简化版只列平台差异，完整流程（装软件、跑 demo、FAQ、反馈）都在
+> Windows 专用手册中。
+
 | 平台 | 状态 |
 |---|---|
 | macOS（Intel / Apple Silicon） | 0.1.0 验证。Apple Silicon 通过 Rosetta 跑 x86_64 镜像，速度约为原生 1/2-1/3，demo 约 1-2 分钟，属正常预期 |

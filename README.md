@@ -14,6 +14,8 @@ SWE-bench 精简教学实验平台：在本地用一条命令跑通「出题 →
 
 ## 快速开始
 
+**Windows 11 用户**：请先看 [docs/user-guide-windows.md](docs/user-guide-windows.md)——从装软件到跑通 demo 全流程。
+
 ### macOS / Linux
 
 ```bash
@@ -30,7 +32,7 @@ pwsh scripts/windows/run-demo.ps1    # 闭环演示
 pwsh scripts/windows/check-agents.ps1  # Agent CLI 检测
 ```
 
-或 `.cmd` 兜底（pwsh 缺失时降级 PowerShell 5.1）：
+或 `.cmd` 兌底（pwsh 缺失时降级 PowerShell 5.1）：
 
 ```cmd
 scripts\windows\install.cmd

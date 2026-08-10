@@ -3,6 +3,9 @@
 0.2.0 新增：把 0.1.0 时代的 macOS bash 入口（start.sh / run_demo.sh /
 check-agents.sh）翻译成 PowerShell 形态，作为 Windows 11 用户的主操作界面。
 
+> **本文档是技术参考（给维护者）**。
+> **Windows 用户**请看 [docs/user-guide-windows.md](../../docs/user-guide-windows.md)——从装软件到跑通 demo 的完整流程 + FAQ。
+
 ## 文件清单
 
 | 文件 | 对应 macOS | 作用 |
