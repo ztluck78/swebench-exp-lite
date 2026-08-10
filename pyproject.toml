@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "swebench-exp-lite"
+version = "1.0.0"
+description = "SWE-bench 精简教学实验平台：出题 → Agent 做题 → 自动打分的最小闭环"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+# 依赖四件套（与 answer_evaluator/requirements.txt 口径统一；
+# 刻意不引入 datasets / python-dotenv，数据集走本地 .jsonl）
+dependencies = [
+    "docker",
+    "tqdm",
+    "unidiff",
+    "requests",
+]
+
+[project.scripts]
+swebench-exp-lite = "swebench_exp_lite.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["swebench_exp_lite*"]

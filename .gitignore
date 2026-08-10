@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+coverage.xml
+
+# 数据库本体不入 git（start.sh 下载或手动放置，见 GETTING-STARTED.md）
+database/swe_bench.db
+database/experiments.db
+
+# 运行时产物
+logs/
+output/
+*.log
+
+# 系统/编辑器
+.DS_Store
+.idea/
+.vscode/
