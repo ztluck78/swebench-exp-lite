@@ -106,8 +106,8 @@ jobs:
           echo "Docker already present on ubuntu-latest via setup-docker-action"
 
       # ===========================================================
-      # 阶段 3：红线 demo（仅 ubuntu-latest 跑）
-      # macos-latest + windows-latest 不强求跑红线（物理/工程限制）
+      # 阶段 3：红线 demo（ubuntu-latest + macos-latest 跑）
+      # windows-latest 物理跑不了 docker load（hosted runner 限制）
       # ===========================================================
       - name: Install PowerShell (ubuntu, for .ps1 scripts)
         if: matrix.os == 'ubuntu-latest'
@@ -138,6 +138,20 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         shell: pwsh
         # 跑 plan §9 [10] 第二项：pwsh scripts/windows/run-demo.ps1
+        run: pwsh scripts/windows/run-demo.ps1
+
+      # macOS 也跑红线断言（满足 spec §9 [7] 「双 job 各自断言」字面）
+      # macos hosted runner 自带 Docker Desktop，可直接跑 PowerShell 入口
+      # 耗时 ~17m（colima x86_64 模拟），但 spec §9 要求就是 macos + windows 双
+      # 平台 CI 都断言 resolved=true。
+      - name: Install (red-line, macos, via PowerShell entry script)
+        if: matrix.os == 'macos-latest'
+        shell: pwsh
+        run: pwsh scripts/windows/install.ps1
+
+      - name: Run red-line demo (macos, via PowerShell entry script)
+        if: matrix.os == 'macos-latest'
+        shell: pwsh
         run: pwsh scripts/windows/run-demo.ps1
 
       # ===========================================================

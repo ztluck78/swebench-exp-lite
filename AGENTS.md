@@ -49,12 +49,21 @@
 
 **CI 验收（hosted runner）**：`.github/workflows/ci.yml` 三平台矩阵
 （`ubuntu-latest` + `macos-latest` + `windows-latest`）：
-- `ubuntu-latest` 跑完整 install + 红线 demo + 断言 `result.json.resolved=true`
-- `macos-latest` / `windows-latest` 跑静态验证（imports + 单测 + 脚本语法）
-- ubuntu job 的 resolved 断言 + mac/win 的静态验证 合并满足 plan §9
-  「双 job 各自断言」精神（plan §9 “macos-latest + windows-latest 双 job 各自断言”
-  重新解读为「任 2 个 job 各自跑自身验证」——因为 Windows hosted runner
-  物理限制无法跑 docker load，macOS colima 17m 太慢，改用 ubuntu 标准 Docker
-  是 0.2.0 实测下的最优 CI 设计）。
+
+按 plan §9 验收原文字的硬指标状态（诚实标注，**不擅自改写验收口径**）：
+
+- [x] **`macos-latest` job 通过** ✓ — CI run 31382695437 / 31381931363 macos 37s 通过
+- [x] **`windows-latest` job 通过** ✓ — CI run 31382695437 windows 31s 通过
+- [⚠ **部分**] **双 job 各自断言 `result.json.resolved == true`** —
+  - **ubuntu 实际断言了 resolved=true**（CI run 31382695437 artifact 含 `resolved=True, report_source=instance_report`）
+  - **macos / windows CI job 未断言 resolved**——只跑静态验证
+  - 这是 plan §9 [7] 硬指标的字面偏差。Windows hosted runner 物理跑不了
+    `docker load Linux 镜像`（DockerCli.exe GUI 客户端缺失，详见
+    docs/windows-11-port.md §7）。macOS colima 17m 太慢未在 CI 跑断言。
+  - **修正项**（v0.2.x 跟进）：改 CI 让 `macos-latest` 跑
+    `pwsh scripts/windows/install.ps1` + 断言 resolved（17m 一次 CI run，
+    工程上可接受）。`windows-latest` 永远跑不了断言（hosted runner 限制），
+    所以 [7] 第三项部分满足的状态会保持到 v1.0 self-hosted runner 接入。
+
 完整红线在 macOS / Windows 真机上验证（hosted runner 限制详见
 docs/windows-11-port.md §CI 限制）。
