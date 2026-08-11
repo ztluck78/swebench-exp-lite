@@ -65,10 +65,10 @@ jobs:
           python -c "from answer_evaluator.harness.run_evaluation import main as re_main; from answer_evaluator.harness.prepare_images import main as pi_main; print('answer_evaluator import OK')"
           if ($LASTEXITCODE -ne 0) { throw "answer_evaluator import 失败" }
 
-      - name: Unit tests (test_platform)
+      - name: Unit tests (discover)
         shell: pwsh
         run: |
-          python -m unittest swebench_exp_lite.tests.test_platform -v
+          python -m unittest discover -s swebench_exp_lite/tests -v
           if ($LASTEXITCODE -ne 0) { throw "单测失败" }
 
       - name: bash scripts syntax check
@@ -127,9 +127,9 @@ jobs:
         run: |
           python -c "from answer_evaluator.harness.run_evaluation import main as re_main; from answer_evaluator.harness.prepare_images import main as pi_main; print('answer_evaluator import OK')"
 
-      - name: Unit tests (test_platform)
+      - name: Unit tests (discover)
         run: |
-          python -m unittest swebench_exp_lite.tests.test_platform -v
+          python -m unittest discover -s swebench_exp_lite/tests -v
 
       - name: bash scripts syntax check (root + ubuntu)
         run: |

@@ -40,9 +40,9 @@ echo "[pre-commit] 1/3 pip install -e ."
     exit 1
 }
 
-# 2. 平台抽象层单测
-echo "[pre-commit] 2/3 平台抽象层单测"
-"$PY" -m unittest swebench_exp_lite.tests.test_platform 2>&1 | tail -3 || {
+# 2. 平台抽象层 + 关键链路单测（discover 模式）
+echo "[pre-commit] 2/3 单测 discover"
+"$PY" -m unittest discover -s swebench_exp_lite/tests 2>&1 | tail -3 || {
     echo "  [error] 单测失败"
     exit 1
 }
