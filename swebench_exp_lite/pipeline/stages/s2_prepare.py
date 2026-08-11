@@ -20,6 +20,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from ...db.query import LiteDB
+from ...runtime.platform import venv_bin_dir
 from .base import Stage, StageError, run_cmd
 
 
@@ -146,7 +147,10 @@ class S2Prepare(Stage):
         repo_slug = ctx.repo.replace("/", "__")
         commit_short = ctx.base_commit[:8] if ctx.base_commit else "unknown"
         venv_dir = cache / "venvs" / repo_slug / commit_short
-        if (venv_dir / "bin" / "python").exists():
+        # Task 17：跨平台修复——用 platform.venv_bin_dir() 替代硬编码 "bin"。
+        # POSIX: bin/python；Windows: Scripts/python.exe。
+        bin_dir = venv_bin_dir()
+        if (venv_dir / bin_dir / "python").exists():
             print(f"    [skip] venv 已存在: {venv_dir}")
             return
         try:
@@ -154,7 +158,7 @@ class S2Prepare(Stage):
             timeout = int(os.environ.get("ENV_PREINSTALL_TIMEOUT", "600"))
             _agent_run_cmd([sys.executable, "-m", "venv", str(venv_dir)],
                            cwd=repo_dir, timeout=180, error_prefix="create venv")
-            pip = str(venv_dir / "bin" / "pip")
+            pip = str(venv_dir / bin_dir / "pip")
             _agent_run_cmd([pip, "install", "--quiet", "-e", str(repo_dir)],
                            cwd=repo_dir, timeout=timeout, error_prefix="pip install -e .")
             _agent_run_cmd([pip, "install", "--quiet", "pytest"],

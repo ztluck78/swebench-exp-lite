@@ -122,6 +122,20 @@ class TestIsProcessAliveWindows(unittest.TestCase):
             with mock.patch("swebench_exp_lite.runtime.platform.os.name", "nt"):
                 self.assertFalse(is_process_alive(1234))
 
+    def test_get_exit_code_process_returns_zero_means_dead(self):
+        """Task 9 补：GetExitCodeProcess 返回 0（API 失败）视为 dead（[platform.py:82-83](file:///Users/zhangtian/DevWorkspace/swebench-exp-lite/swebench_exp_lite/runtime/platform.py#L82-L83)）。"""
+        # 让 GetExitCodeProcess 返回 0（API 失败）→ is_process_alive 应返 False
+        fake_kernel32 = mock.MagicMock()
+        fake_kernel32.OpenProcess.return_value = 1  # 非零句柄（进程存在）
+        fake_kernel32.GetExitCodeProcess.return_value = False  # API 失败
+        fake_kernel32.CloseHandle.return_value = True
+        fake_ctypes = mock.MagicMock()
+        fake_ctypes.WinDLL.return_value = fake_kernel32
+        fake_ctypes.byref.side_effect = lambda ref: ref
+        with mock.patch.dict(sys.modules, {"ctypes": fake_ctypes}):
+            with mock.patch("swebench_exp_lite.runtime.platform.os.name", "nt"):
+                self.assertFalse(is_process_alive(1234))
+
 
 # ---------------------------------------------------------------------------
 # venv_bin_dir
