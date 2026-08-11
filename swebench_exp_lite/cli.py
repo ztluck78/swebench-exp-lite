@@ -6,12 +6,15 @@
 - info        查看单个实例详情（含镜像/难度/测试数）
 - run         跑六阶段闭环（S1→S2→S4→S5→S6→S7）
 - candidates  按 p2p/patch_size 升序推荐"适合上手"的题
+- viz         生成六阶段流程可视化教学页面（读 output/<iid>/ 产物）
 """
 from __future__ import annotations
 
 import argparse
 import json
 import sys
+import webbrowser
+from pathlib import Path
 from datetime import datetime
 
 
@@ -145,6 +148,43 @@ def cmd_candidates(args) -> int:
 
 
 # ---------------------------------------------------------------------------
+# viz
+# ---------------------------------------------------------------------------
+def cmd_viz(args) -> int:
+    """生成六阶段流程可视化教学页面（读 output/<iid>/ 既有产物）。
+
+    与现有 run / build 完全解耦：只读不写，不改管线状态。
+    若 output/<iid>/manifest.json 缺失，提示用户先跑 run。
+    """
+    from .visualizer import load_all, write as viz_write
+    from .db import REPO_ROOT
+
+    task_dir = Path(getattr(args, "task_dir", None) or (REPO_ROOT / "output" / args.instance))
+    task_dir = task_dir.resolve()
+    manifest = task_dir / "manifest.json"
+    if not manifest.exists():
+        print(f"错误：{manifest} 不存在", file=sys.stderr)
+        print(f"  请先跑：python -m swebench_exp_lite run --instance {args.instance}",
+              file=sys.stderr)
+        return 1
+
+    output = Path(args.output) if args.output else task_dir / "flow.html"
+    flow = load_all(task_dir)
+    out_path = viz_write(flow, output)
+    print(f"[viz] 已生成流程可视化页面：{out_path}")
+    print(f"      打开方式：浏览器双击该 HTML 文件，或")
+    print(f"      命令行：  open {out_path}    # macOS")
+    print(f"                xdg-open {out_path} # Linux")
+
+    if args.open:
+        try:
+            webbrowser.open(out_path.as_uri())
+        except Exception as e:  # noqa: BLE001 — 浏览器启动失败不阻断
+            print(f"      [warn] 自动打开浏览器失败：{e}", file=sys.stderr)
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # 入口
 # ---------------------------------------------------------------------------
 def build_parser() -> argparse.ArgumentParser:
@@ -189,6 +229,15 @@ def build_parser() -> argparse.ArgumentParser:
     sp.add_argument("--limit", type=int, default=10)
     sp.add_argument("--db", default=None)
     sp.set_defaults(func=cmd_candidates)
+
+    sp = sub.add_parser("viz", help="生成六阶段流程可视化教学页面")
+    sp.add_argument("--instance", required=True)
+    sp.add_argument("-o", "--output", default=None,
+                    help="HTML 输出路径（默认 output/<iid>/flow.html）")
+    sp.add_argument("--task-dir", default=None,
+                    help="覆盖产物目录（默认 output/<iid>/）")
+    sp.add_argument("--open", action="store_true", help="生成后用系统默认浏览器打开")
+    sp.set_defaults(func=cmd_viz)
 
     return p
 
