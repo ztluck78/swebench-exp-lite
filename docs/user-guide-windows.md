@@ -2,7 +2,8 @@
 
 > 面向 Windows 11 用户的完整操作手册。从"装软件"到"跑通 demo"全流程，~1-1.5 小时。
 >
-> **macOS / Linux 用户**：请改用 [GETTING-STARTED.md](../GETTING-STARTED.md)。
+> **macOS 用户**：请改用 [GETTING-STARTED.md](../GETTING-STARTED.md)。
+> **Ubuntu 用户**：请看 [docs/user-guide-ubuntu.md](user-guide-ubuntu.md)。
 > **开发者 / 维护者**：请看 [docs/windows-11-port.md](windows-11-port.md)（移植笔记）和 [scripts/windows/README.md](../scripts/windows/README.md)（技术参考）。
 
 ---
@@ -262,7 +263,35 @@ pwsh -m swebench_exp_lite run --instance pylint-dev__pylint-7080 --adapter kimi-
 
 **注意**：`--adapter` 必须用 `check-agents.ps1` 列出的 adapter 名，否则会报 `adapter not found`。
 
-## 7. 进阶（按需阅读）
+## 7. 流程可视化（推荐）
+
+跑完 demo 后，平台会把六阶段闭环（**出题 → 解题 → 打分**）渲染成一个**自包含 HTML 页面**，
+让学生直观看到每一步在干什么、干到哪了、产物长什么样。
+
+**一句话**：把 `output\<iid>\` 下分散的产物（manifest / result / diff / 报告），
+聚合成一个**可点击 / 悬浮提示**的网页。
+
+### 一行使用
+
+```powershell
+pwsh -m swebench_exp_lite viz --instance pylint-dev__pylint-7080
+```
+
+打开浏览器双击 `output\pylint-dev__pylint-7080\flow.html` 即可（或 `Invoke-Item output\pylint-dev__pylint-7080\flow.html`），
+应能看到：
+
+- 顶部 **RESOLVED 100%** 徽章 + 元信息（run_id / model / adapter / image / F2P / P2P）
+- 6 节点流水线（按出题/解题/打分三段着色：蓝/紫/橙）
+- 6 张可折叠阶段卡片：每张含「做什么 / 为什么需要 / 输入输出 / 产物预览」
+- 鼠标悬停术语（F2P / P2P / gold patch / harness 等）自动弹出解释
+- 点击产物路径直接打开原文件
+- 阶段耗时时间线（S6_score 占 99% 时标「瓶颈」）
+
+**键盘快捷键**：`1`-`6` 切换阶段卡片 / `e` 全展开 / `c` 全折叠
+
+> 详细设计动机 / 边界 / 跨平台 / 教学作者如何修订文案 → 见 [visualizer.md](visualizer.md)
+
+## 8. 进阶（按需阅读）
 
 ### 换题
 
@@ -308,7 +337,7 @@ $ids = pwsh -m swebench_exp_lite list --limit 9999 | Select-String -Pattern "\S+
 foreach ($id in $ids) { pwsh -m swebench_exp_lite run --instance $id.Line --adapter replay-agent }
 ```
 
-## 8. 常见问题（FAQ）
+## 9. 常见问题（FAQ）
 
 ### Q1: PowerShell 报"running scripts is disabled on this system"
 
@@ -381,7 +410,7 @@ pwsh -m swebench_exp_lite run --instance <iid> --adapter kimi-agent
 
 查看 `logs\run_evaluation\...report.json` 找具体哪个测试失败。
 
-## 9. 反馈
+## 10. 反馈
 
 跑通后**强烈建议**开 issue 附上：
 - `output\pylint-dev__pylint-7080\result.json` 全文

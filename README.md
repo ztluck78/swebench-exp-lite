@@ -19,6 +19,8 @@ SWE-bench 精简教学实验平台：在本地用一条命令跑通「出题 →
 
 **Windows 11 用户**：请先看 [docs/user-guide-windows.md](docs/user-guide-windows.md)——从装软件到跑通 demo 全流程。
 
+**Ubuntu 用户**：请先看 [docs/user-guide-ubuntu.md](docs/user-guide-ubuntu.md)——Ubuntu 专属完整教程。
+
 ### macOS / Linux
 
 ```bash
@@ -51,6 +53,22 @@ scripts\windows\run-demo.cmd
 ```
 
 完整教程（8 章，手把手）：[GETTING-STARTED.md](GETTING-STARTED.md)
+
+## 一键可视化（推荐）
+
+跑完上面任何一个 `run-demo` 后，平台可以把六阶段闭环（出题 → 解题 → 打分）渲染成一个**自包含 HTML 页面**，
+让学生直观看到每一步在干什么、干到哪了、产物长什么样。
+
+```bash
+.venv/bin/python -m swebench_exp_lite viz --instance pylint-dev__pylint-7080
+# 或 Windows：pwsh -m swebench_exp_lite viz --instance pylint-dev__pylint-7080
+```
+
+打开浏览器双击 `output/<iid>/flow.html` 即可（或 `open` / `xdg-open` / `Invoke-Item`），
+应能看到：顶部 RESOLVED 徽章 + 6 节点流水线（蓝/紫/橙三段）+ 6 张可折叠阶段卡片
+（含教学说明、产物预览、术语 tooltip）+ 阶段耗时时间线 + 键盘快捷键（1-6 / e / c）。
+
+详细设计动机 / 边界 / 跨平台 → [docs/visualizer.md](docs/visualizer.md)
 
 ## 平台支持
 
@@ -97,7 +115,8 @@ database/             # 题库 SQLite（swe_bench.db，git 忽略，start.sh 下
 docs/                 # 文档
   ├── windows-11-port.md       # Windows 11 移植笔记 + 70+ 分钟 CI 调试教训
   ├── verification-spec.md     # v0.2.0+ 开发纪律规范（8 节）
-  └── user-guide-windows.md    # Windows 11 用户手册
+  ├── user-guide-windows.md    # Windows 11 用户手册
+  └── user-guide-ubuntu.md     # Ubuntu x86_64 用户手册
 scripts/              # v0.2.0 新增——多平台入口脚本（mac/win/ubuntu 目录托管）
   ├── README.md
   ├── macos/           # macOS 占位（0.1.0 仓根 .sh 保留）

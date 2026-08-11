@@ -57,6 +57,9 @@ resolved = F2P 全部通过 ∧ P2P 全部通过
 > **Windows 11 用户**：请先看 [docs/user-guide-windows.md](../docs/user-guide-windows.md)——
 > 本教程的 §1 简化版只列平台差异，完整流程（装软件、跑 demo、FAQ、反馈）都在
 > Windows 专用手册中。
+>
+> **Ubuntu 用户**：请先看 [docs/user-guide-ubuntu.md](../docs/user-guide-ubuntu.md)——
+> Ubuntu 专属完整教程（Docker Engine 安装、docker 组权限、python3-venv 等）。
 
 | 平台 | 状态 |
 |---|---|
@@ -243,6 +246,34 @@ pwsh scripts/windows/run-demo.ps1
 **replay-agent 是回放已知 gold patch 的闭环自检，证明链路通畅，不代表模型解题能力。**
 它把标准答案直接写进评分链路，resolved=true 是"管道正确"的证明，不是"模型会做题"
 的证明。要看真实解题能力，进入第 5 章。
+
+### 3.7 流程可视化（推荐）
+
+跑完 §3.1 之后，平台会把六阶段闭环（**出题 → 解题 → 打分**）渲染成一个**自包含 HTML 页面**，
+让学生直观看到每一步在干什么、干到哪了、产物长什么样。
+
+**一句话**：把 `output/<iid>/` 下分散的产物（manifest / result / diff / 报告），
+聚合成一个**可点击 / 悬浮提示**的网页。
+
+**一行使用**：
+
+```bash
+.venv/bin/python -m swebench_exp_lite viz --instance pylint-dev__pylint-7080
+```
+
+打开浏览器双击 `output/pylint-dev__pylint-7080/flow.html` 即可（或 `open output/pylint-dev__pylint-7080/flow.html`），
+应能看到：
+
+- 顶部 **RESOLVED 100%** 徽章 + 元信息（run_id / model / adapter / image / F2P / P2P）
+- 6 节点流水线（按出题/解题/打分三段着色：蓝/紫/橙）
+- 6 张可折叠阶段卡片：每张含「做什么 / 为什么需要 / 输入输出 / 产物预览」
+- 鼠标悬停术语（F2P / P2P / gold patch / harness 等）自动弹出解释
+- 点击产物路径直接打开原文件
+- 阶段耗时时间线（S6_score 占 99% 时标「瓶颈」）
+
+**键盘快捷键**：`1`-`6` 切换阶段卡片 / `e` 全展开 / `c` 全折叠
+
+> 详细设计动机 / 边界 / 跨平台 / 教学作者如何修订文案 → 见 [docs/visualizer.md](docs/visualizer.md)
 
 ## 4. 理解实验
 
