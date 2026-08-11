@@ -34,6 +34,27 @@ def _e(s: Any) -> str:
     return html.escape(str(s), quote=True)
 
 
+def _t(s: str | None) -> str:
+    """渲染正文文本：先 HTML escape，再用 <abbr> 包裹已知术语（§5.4 教学术语悬浮提示）。
+
+    顺序很重要：先 escape 保证 XSS 安全，然后对转义后的字符串做术语包裹。
+    因为 TERMS 都是 ASCII（F2P / P2P / gold patch / worktree 等），转义不会改变它们，
+    所以 pattern 匹配仍然有效。
+    """
+    if not s:
+        return ""
+    escaped = html.escape(str(s), quote=True)
+    out = escaped
+    # 按长度倒序匹配，避兔 'gold patch' 被 'gold' 提前吞掉
+    for term in sorted(TERMS.keys(), key=len, reverse=True):
+        title = html.escape(TERMS[term], quote=True)
+        out = out.replace(
+            term,
+            f'<abbr class="term" title="{title}">{term}</abbr>',
+        )
+    return out
+
+
 def _json_safe(obj: Any) -> Any:
     """JSON 序列化前的轻量消毒（Path → str、bytes → str）。"""
     if isinstance(obj, dict):
@@ -149,11 +170,11 @@ def _render_stages(flow: FlowData) -> str:
     <div class="grid-2">
       <div>
         <h3>做什么</h3>
-        <p>{_e(guide.get("what", ""))}</p>
+        <p>{_t(guide.get("what", ""))}</p>
       </div>
       <div>
         <h3>为什么需要</h3>
-        <p>{_e(guide.get("why", ""))}</p>
+        <p>{_t(guide.get("why", ""))}</p>
       </div>
     </div>
     <div class="grid-2">
@@ -172,7 +193,7 @@ def _render_stages(flow: FlowData) -> str:
         <tr><th>起止</th><td>{_e(stage.started_at or "—")} → {_e(stage.finished_at or "—")}</td></tr>
         <tr><th>耗时</th><td>{stage.duration_s:.1f}s</td></tr>
         <tr><th>子命令链</th><td><code>{_e(_join_command(stage.command))}</code></td></tr>
-        <tr><th>产物路径</th><td>{"<br>".join(f"<code>{_e(o)}</code>" for o in stage.outputs) or "（无）"}</td></tr>
+        <tr><th>产物路径</th><td>{_render_product_links(stage.outputs, flow.task_dir) or "（无）"}</td></tr>
         {"<tr><th>错误</th><td class='error'>" + _e(stage.error) + "</td></tr>" if stage.error else ""}
       </table>
     </div>
@@ -190,6 +211,41 @@ def _render_io_list(items: list[str]) -> str:
     if not items:
         return "<li class='muted'>（无）</li>"
     return "".join(f"<li>{_e(it)}</li>" for it in items)
+
+
+def _render_product_links(outputs: list[str], task_dir: str) -> str:
+    """产物路径渲染为可点击的 file:// 链接（§5.3 第 4 块“跳转到产物文件”）。
+
+    仅在文件实际存在时生成链接，缺失的产物仍以 <code> 文本展示（带 ✘ 提示）。
+    """
+    if not outputs:
+        return ""
+    parts = []
+    base = Path(task_dir)
+    for o in outputs:
+        path = Path(o)
+        # 计算 file:// URL（仅当路径存在时点击才有效）
+        try:
+            rel = path.relative_to(base)
+            exists = path.exists()
+            label = _e(str(rel))
+        except ValueError:
+            rel = None
+            exists = path.exists()
+            label = _e(path.name)
+        if exists:
+            url = path.resolve().as_uri()
+            mark = "✓"
+            parts.append(
+                f'<a class="file-link" href="{_e(url)}" target="_blank" '
+                f'title="{_e(str(path))}"><code>{label}</code></a> <span class="file-mark">{mark}</span>'
+            )
+        else:
+            parts.append(
+                f'<span class="file-missing" title="{_e(str(path))}">'
+                f'<code>{label}</code> <span class="file-mark">✘</span></span>'
+            )
+    return "<br>".join(parts)
 
 
 def _join_command(cmd: list[str] | None) -> str:
@@ -480,6 +536,20 @@ body > section, body > header { max-width: 1200px; margin: 0 auto; padding: 24px
 code { background: var(--code-bg); padding: 2px 6px; border-radius: 4px;
   font-size: 13px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .muted { color: var(--muted); }
+/* §5.4 教学术语悬浮提示 */
+abbr.term { text-decoration: underline dotted #2563eb; text-decoration-thickness: 2px;
+  text-underline-offset: 3px; cursor: help; color: #1d4ed8;
+  font-weight: 500; border-bottom: none; background: #eff6ff;
+  padding: 0 3px; border-radius: 3px; }
+abbr.term:hover { background: #dbeafe; color: #1e3a8a; }
+/* §5.3 产物文件链接 */
+a.file-link { text-decoration: none; color: #1d4ed8; }
+a.file-link code { background: #fef3c7; color: #92400e; }
+a.file-link:hover code { background: #fde68a; color: #78350f; }
+.file-missing code { color: var(--muted); text-decoration: line-through; background: #fee2e2; }
+.file-mark { font-size: 11px; margin-left: 4px; font-weight: 600; }
+.file-link + .file-mark { color: var(--ok); }
+.file-missing .file-mark { color: var(--fail); }
 section h2 { margin-top: 32px; padding-bottom: 8px; border-bottom: 2px solid var(--border); }
 .pipeline-flow { display: flex; align-items: center; justify-content: space-between;
   gap: 8px; padding: 24px 0; flex-wrap: wrap; }
