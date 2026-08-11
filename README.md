@@ -82,6 +82,10 @@ scripts\windows\run-demo.cmd
   - CI `ubuntu-latest` job 跑完整红线 demo + 断言 `resolved=true`（实测 ~2min）
 - **v0.4.0+** 路线图：self-hosted macOS runner（消除 colima/qemu 17m）
 
+> **教学可视化**：跨平台为已发布的三个版本都提供——跑完 demo 后
+> `python -m swebench_exp_lite viz --instance X` 生成自包含 HTML 教学页面，
+> 让六阶段流程对学生可见、可点击、可悬浮提示。详见 [docs/visualizer.md](docs/visualizer.md)。
+
 ## 验证策略（v0.2.0）
 
 v0.3.0 按 user 反馈"目标放在本地，不要烧 CI 时间"重构成**三层架构**（Ubuntu 红线回归 CI 是例外）：
